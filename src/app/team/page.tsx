@@ -254,7 +254,7 @@ export default function ParticipantDashboard() {
   const currentCreativeText = draft?.member2Data?.text || "";
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans pb-20">
+    <div className="min-h-screen bg-background flex flex-col font-sans">
       {/* Header */}
       <TeamWorkspaceHeader
         teamId={teamId}
@@ -266,7 +266,7 @@ export default function ParticipantDashboard() {
         onLeave={handleLogout}
       />
 
-      <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
+      <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6 pb-32 sm:pb-28">
         {/* Connection Lost Banner */}
         {!isOnline && (
           <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono text-sm tracking-wide animate-pulse">

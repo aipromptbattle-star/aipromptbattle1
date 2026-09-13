@@ -34,16 +34,16 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
         {/* Organizer Topbar */}
-        <header className="border-b border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)] px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-          <div className="flex items-center gap-3">
-            <Terminal className="w-6 h-6 text-[var(--color-apb-blue)]" />
-            <h1 className="font-mono font-bold tracking-widest uppercase text-white hidden sm:block">
+        <header className="border-b border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)] px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-50 gap-3">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Terminal className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--color-apb-blue)]" />
+            <h1 className="font-mono font-bold tracking-widest uppercase text-white text-sm sm:text-base hidden sm:block">
               APB Control Room
             </h1>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-4">
-            <nav className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto py-0.5 max-w-full">
+            <nav className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
@@ -51,42 +51,42 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                   <Link key={item.href} href={item.href}>
                     <div
                       className={cn(
-                        "flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md text-sm font-mono uppercase tracking-wider transition-colors",
+                        "flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-mono uppercase tracking-wider transition-colors shrink-0",
                         isActive
                           ? "bg-[var(--color-apb-blue)]/10 text-[var(--color-apb-blue)] font-bold"
                           : "text-muted-foreground hover:bg-[var(--color-apb-surface-border)] hover:text-white"
                       )}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span className="hidden sm:inline-block">{item.name}</span>
+                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden md:inline-block">{item.name}</span>
                     </div>
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="h-6 w-px bg-[var(--color-apb-surface-border)] hidden sm:block" />
+            <div className="h-5 w-px bg-[var(--color-apb-surface-border)] shrink-0 hidden sm:block" />
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <Link 
                 href="/host" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 title="Launch Host Display (Opens in new tab)"
               >
-                <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-mono uppercase tracking-wider text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30 hover:bg-[var(--color-apb-cyan)]/10 transition-colors">
+                <div className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs font-mono uppercase tracking-wider text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30 hover:bg-[var(--color-apb-cyan)]/10 transition-colors">
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline-block">Host View</span>
+                  <span className="hidden lg:inline-block">Host View</span>
                 </div>
               </Link>
 
               <button
                 onClick={handleSignOut}
                 title="Sign Out"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-mono uppercase tracking-wider text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
+                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs font-mono uppercase tracking-wider text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden md:inline-block">Sign Out</span>
+                <span className="hidden lg:inline-block">Sign Out</span>
               </button>
             </div>
           </div>

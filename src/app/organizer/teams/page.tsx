@@ -73,8 +73,8 @@ export default function OrganizerTeams() {
           />
         </div>
         
-        <div className="rounded-md border border-[var(--color-apb-surface-border)] overflow-hidden">
-          <table className="w-full text-sm text-left">
+        <div className="rounded-md border border-[var(--color-apb-surface-border)] overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm text-left">
             <thead className="bg-[var(--color-apb-surface-border)]/50 text-muted-foreground uppercase text-xs tracking-wider">
               <tr>
                 <th className="px-4 py-3 font-medium">Team ID</th>
@@ -115,11 +115,23 @@ export default function OrganizerTeams() {
                         <StatusBadge status={team.active ? "ACTIVE" : "INACTIVE"} />
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted text-muted-foreground transition-colors outline-none focus:ring-2 focus:ring-ring">
-                            <span className="sr-only">Open menu</span>
-                            <MoreVertical className="h-4 w-4" />
-                          </DropdownMenuTrigger>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <APBButton
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingTeam(team);
+                              setEditDialogOpen(true);
+                            }}
+                            className="h-8 px-2.5 text-xs font-mono"
+                          >
+                            Edit
+                          </APBButton>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--color-apb-surface-border)] hover:bg-muted text-muted-foreground hover:text-white transition-colors outline-none focus:ring-2 focus:ring-ring">
+                              <span className="sr-only">More options</span>
+                              <MoreVertical className="h-4 w-4" />
+                            </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuGroup>
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
@@ -151,6 +163,7 @@ export default function OrganizerTeams() {
                             </DropdownMenuGroup>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                        </div>
                       </td>
                     </tr>
                   );

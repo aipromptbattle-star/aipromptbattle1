@@ -65,12 +65,13 @@ export function AddTeamDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<APBButton />}>
+    <>
+      <APBButton glow onClick={() => setOpen(true)}>
         <Plus className="w-4 h-4 mr-2" />
         Add Team
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] max-h-[90vh] overflow-y-auto">
+      </APBButton>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-mono uppercase tracking-widest text-white flex items-center gap-2">
             <Terminal className="w-5 h-5 text-[var(--color-apb-cyan)]" />
@@ -169,5 +170,6 @@ export function AddTeamDialog() {
         </form>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

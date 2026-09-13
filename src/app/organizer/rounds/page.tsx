@@ -121,11 +121,12 @@ export default function OrganizerRounds() {
           <p className="text-muted-foreground">Configure challenges and event flow.</p>
         </div>
         
+        <APBButton glow onClick={() => setOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Create Round
+        </APBButton>
+
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<APBButton />}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Round
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-white">
             <DialogHeader>
               <DialogTitle className="font-mono uppercase tracking-widest text-[var(--color-apb-cyan)]">New Round</DialogTitle>

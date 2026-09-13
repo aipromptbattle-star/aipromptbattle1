@@ -614,8 +614,8 @@ export default function OrganizerDashboard() {
             </div>
 
             {/* Sessions Table */}
-            <div className="rounded border border-[var(--color-apb-surface-border)] overflow-hidden bg-black/30">
-              <table className="w-full text-left text-xs font-mono">
+            <div className="rounded border border-[var(--color-apb-surface-border)] overflow-x-auto bg-black/30">
+              <table className="w-full min-w-[550px] text-left text-xs font-mono">
                 <thead className="bg-white/[0.04] text-muted-foreground uppercase border-b border-[var(--color-apb-surface-border)]">
                   <tr>
                     <th className="px-3 py-2.5">Team ID</th>
