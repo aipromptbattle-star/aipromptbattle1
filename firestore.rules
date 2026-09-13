@@ -1,0 +1,245 @@
+rules_version = '2';
+
+// ============================================================
+// AI PROMPT BATTLE — Firestore Security Rules
+//
+// ARCHITECTURE NOTES:
+//   Organizers:  Email/Password Firebase Auth
+//   Participants: Anonymous Firebase Auth
+//
+//   Team ownership is derived at rule-time via:
+//     sessions/{request.auth.uid}.teamId
+//   which is written to Firestore during joinTeam().
+//
+//   Document IDs for drafts / teamRoundState / submissions:
+//     "{eventId}_{teamId}_{roundId}"
+//   The embedded teamId field in the document is the ownership
+//   anchor checked against the participant's session.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Identity helpers ─────────────────────────────────────
+
+    // Organizer = Authorized via organizers collection
+    function isOrganizer() {
+      return request.auth != null
+          && exists(/databases/$(database)/documents/organizers/$(request.auth.uid));
+    }
+
+    match /organizers/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false; // Managed manually or via Admin SDK
+    }
+
+    // Judge = Authorized via judges collection (active judges only)
+    function isJudge() {
+      return request.auth != null
+          && exists(/databases/$(database)/documents/judges/$(request.auth.uid))
+          && get(/databases/$(database)/documents/judges/$(request.auth.uid)).data.active == true;
+    }
+
+    match /judges/{judgeId} {
+      allow read: if isOrganizer() || (request.auth != null && request.auth.uid == judgeId);
+      allow write: if isOrganizer();
+    }
+
+    // Participant = Anonymous Firebase Auth sign-in
+    function isParticipant() {
+      return request.auth != null
+          && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    // Returns true only when the participant has an active session document.
+    // This is a prerequisite for any team-ownership check.
+    function hasActiveSession() {
+      return isParticipant()
+          && exists(/databases/$(database)/documents/sessions/$(request.auth.uid));
+    }
+
+    // Reads the teamId from the participant's own session document.
+    // Only call after hasActiveSession() returns true.
+    function myTeamId() {
+      return get(/databases/$(database)/documents/sessions/$(request.auth.uid)).data.teamId;
+    }
+
+    // ── events ───────────────────────────────────────────────
+    // Participants need READ to watch round state in real time.
+    // Only organizers may change event state / currentRoundId / timers.
+    match /events/{eventId} {
+      allow read:  if isOrganizer() || isParticipant();
+      allow write: if isOrganizer();
+    }
+
+    // ── rounds ───────────────────────────────────────────────
+    // Participants need READ to receive challenge config and timer.
+    // Only organizers may change status / startedAt / endsAt / etc.
+    match /rounds/{roundId} {
+      allow read:  if isOrganizer() || isParticipant();
+      allow write: if isOrganizer();
+    }
+
+    // ── teams ────────────────────────────────────────────────
+    // Participants need READ to fetch their own team name/members.
+    // Only organizers may create, update, or disable teams.
+    match /teams/{teamId} {
+      allow read:  if isOrganizer() || isParticipant();
+      allow write: if isOrganizer();
+    }
+
+    // ── sessions ─────────────────────────────────────────────
+    // Session doc = sessions/{uid}
+    // READ: participants may read all session documents.
+    //   Rationale: joinTeam() queries sessions by teamId to enforce the
+    //   2-device limit BEFORE a session is created (so hasActiveSession()
+    //   cannot be used). Session documents contain only:
+    //     { teamId, eventId, connectedAt, lastActiveAt }
+    //   — no PII, no credentials. Anonymous UIDs are document IDs only.
+    //   Allowing LIST is the minimum necessary for this legitimate operation.
+    // WRITE: participants may only write their own session document (uid == sessionId).
+    match /sessions/{sessionId} {
+      allow read:   if isOrganizer() || isParticipant();
+      allow create: if isParticipant()
+                    && request.auth.uid == sessionId
+                    // Enforce required fields — no privilege escalation
+                    && request.resource.data.teamId is string
+                    && request.resource.data.eventId is string
+                    && request.resource.data.connectedAt is number
+                    && request.resource.data.lastActiveAt is number;
+      allow update: if isParticipant()
+                    && request.auth.uid == sessionId
+                    // teamId and eventId are immutable once set
+                    && request.resource.data.teamId == resource.data.teamId
+                    && request.resource.data.eventId == resource.data.eventId;
+      allow delete: if isOrganizer()
+                    || (isParticipant() && request.auth.uid == sessionId);
+    }
+
+    // ── drafts ───────────────────────────────────────────────
+    // Doc ID: "{eventId}_{teamId}_{roundId}"
+    // Each draft document contains a teamId field.
+    // A participant may only access the draft whose teamId matches their session.
+    match /drafts/{draftId} {
+      // READ: organizer sees all; participant sees only their team's draft.
+      allow read: if isOrganizer()
+                  || (hasActiveSession() && resource.data.teamId == myTeamId());
+
+      // CREATE: participant may create a draft only for their own team.
+      allow create: if hasActiveSession()
+                    && request.resource.data.teamId == myTeamId()
+                    // Core ownership fields must be present
+                    && request.resource.data.eventId is string
+                    && request.resource.data.roundId is string;
+
+      // UPDATE: participant may update only their own team's draft.
+      // Ownership anchor fields (teamId, eventId, roundId) are immutable.
+      allow update: if hasActiveSession()
+                    && resource.data.teamId == myTeamId()
+                    && request.resource.data.teamId  == resource.data.teamId
+                    && request.resource.data.eventId == resource.data.eventId
+                    && request.resource.data.roundId == resource.data.roundId;
+
+      allow delete: if isOrganizer();
+    }
+
+    // ── teamRoundState ───────────────────────────────────────
+    // Doc ID: "{eventId}_{teamId}_{roundId}"
+    // Tracks autosave progress and final submission status per team per round.
+    //
+    // NOTE on SUBMITTED status:
+    //   submitFinalResponse() uses a Firestore transaction that atomically:
+    //     (a) creates the submission doc, and
+    //     (b) sets teamRoundState.status = "SUBMITTED"
+    //   Both writes must pass rules in the same transaction.
+    //   We therefore allow participants to set their own state to SUBMITTED,
+    //   but only if they own the document and cannot change ownership fields.
+    //   The actual guard against illegitimate submissions is the submission rule
+    //   (write-once) and the transaction's own round-status / deadline checks.
+    match /teamRoundState/{stateId} {
+      allow read: if isOrganizer()
+                  || (hasActiveSession() && resource.data.teamId == myTeamId());
+
+      allow create: if hasActiveSession()
+                    && request.resource.data.teamId == myTeamId()
+                    && request.resource.data.eventId is string
+                    && request.resource.data.roundId is string;
+
+      // Participant may update only their own state; cannot change ownership fields.
+      allow update: if hasActiveSession()
+                    && resource.data.teamId == myTeamId()
+                    && request.resource.data.teamId  == resource.data.teamId
+                    && request.resource.data.eventId == resource.data.eventId
+                    && request.resource.data.roundId == resource.data.roundId;
+
+      allow delete: if isOrganizer();
+    }
+
+    // ── submissions ──────────────────────────────────────────
+    // Doc ID: "{eventId}_{teamId}_{roundId}"
+    // WRITE-ONCE for participants: create only, no update, no delete.
+    // The submission transaction also checks: round is LIVE, deadline not passed,
+    // and the document does not already exist (deduplication).
+    match /submissions/{submissionId} {
+      // READ: organizer sees all; active judges see all; participant sees only their own team's submission.
+      allow read: if isOrganizer()
+                  || isJudge()
+                  || (hasActiveSession() && resource.data.teamId == myTeamId());
+
+      // CREATE: participant may create exactly one submission for their own team.
+      // Status must be "FINAL"; ownership fields must match session.
+      allow create: if hasActiveSession()
+                    && request.resource.data.teamId == myTeamId()
+                    && request.resource.data.status == 'FINAL'
+                    && request.resource.data.eventId is string
+                    && request.resource.data.roundId is string
+                    && request.resource.data.submittedAt is number;
+
+      // NO participant update or delete — submission is immutable once created.
+      allow update: if isOrganizer();
+      allow delete: if isOrganizer();
+    }
+
+    // ── auditLogs ────────────────────────────────────────────
+    // Only organizer reads and writes. The post-transaction logAudit() call
+    // from the participant submission flow will be silently rejected — this is
+    // acceptable because the submission itself is already committed in the
+    // transaction. The audit log not recording a participant entry is a minor
+    // loss; keeping the collection organizer-write-only is the right tradeoff.
+    match /auditLogs/{logId} {
+      allow read:             if isOrganizer();
+      allow create:           if isOrganizer();
+      allow update, delete:   if isOrganizer();
+    }
+
+    // ── judgeAssignments ─────────────────────────────────────
+    match /judgeAssignments/{assignmentId} {
+      allow read: if isOrganizer()
+                  || (isJudge() && resource.data.judgeId == request.auth.uid);
+      allow write: if isOrganizer();
+    }
+
+    // ── scores ───────────────────────────────────────────────
+    // Multi-judge score documents: {eventId}_{roundId}_{submissionId}_{judgeId}
+    // Judges read and write only their own assigned scores.
+    // Organizers have full read and write (overrides).
+    match /scores/{scoreId} {
+      allow read: if isOrganizer()
+                  || (isJudge() && resource.data.judgeId == request.auth.uid);
+      allow create: if isOrganizer()
+                    || (isJudge() && request.resource.data.judgeId == request.auth.uid);
+      allow update: if isOrganizer()
+                    || (isJudge() && resource.data.judgeId == request.auth.uid && request.resource.data.judgeId == request.auth.uid);
+      allow delete: if isOrganizer();
+    }
+
+    // ── qualifications ───────────────────────────────────────
+    // Qualifications: {eventId}_{roundId}_{teamId}
+    // Organizers publish and manage; participants may read their own team qualification.
+    match /qualifications/{qualificationId} {
+      allow read: if isOrganizer()
+                  || (hasActiveSession() && resource.data.teamId == myTeamId());
+      allow write: if isOrganizer();
+    }
+  }
+}

@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isOrganizer() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'password';
+    }
+    
+    function isParticipant() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    match /events/{eventId}/teams/{teamId}/rounds/{roundId}/{fileName} {
+      // Organizers and participants can view uploaded creative assets
+      allow read: if isOrganizer() || isParticipant();
+
+      // Participants and organizers can upload images meeting size and MIME requirements
+      allow write: if (isOrganizer() || isParticipant())
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
