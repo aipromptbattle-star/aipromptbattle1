@@ -24,9 +24,17 @@ export default function LandingPage() {
           </Link>
         </div>
         
-        <div className="pt-12">
-          <Link href="/host" className="text-muted-foreground hover:text-white transition-colors text-sm uppercase tracking-widest font-mono">
-            [ Open Host Display ]
+        <div className="pt-8 flex flex-wrap items-center justify-center gap-6 text-sm uppercase tracking-widest font-mono">
+          <Link href="/host" className="text-muted-foreground hover:text-[var(--color-apb-cyan)] transition-colors">
+            [ Host Display ]
+          </Link>
+          <span className="text-muted-foreground/30">•</span>
+          <Link href="/judge/login" className="text-muted-foreground hover:text-[var(--color-apb-cyan)] transition-colors">
+            [ Judge Portal ]
+          </Link>
+          <span className="text-muted-foreground/30">•</span>
+          <Link href="/organizer" className="text-muted-foreground hover:text-[var(--color-apb-blue)] transition-colors">
+            [ Organizer Console ]
           </Link>
         </div>
       </div>

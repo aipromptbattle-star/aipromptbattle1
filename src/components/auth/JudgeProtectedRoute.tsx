@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Loader2 } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
@@ -12,10 +12,14 @@ import { Judge } from "@/lib/firebase/schema";
 export function JudgeProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [judgeData, setJudgeData] = useState<Judge | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
+    if (pathname === "/judge/login") {
+      return;
+    }
     if (!loading) {
       if (!user) {
         router.push("/judge/login");
@@ -41,6 +45,10 @@ export function JudgeProtectedRoute({ children }: { children: React.ReactNode })
       }
     }
   }, [user, loading, router]);
+
+  if (pathname === "/judge/login") {
+    return <>{children}</>;
+  }
 
   if (loading || !user || isAuthorized === null) {
     return (

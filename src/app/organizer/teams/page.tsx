@@ -9,7 +9,8 @@ import { AddTeamDialog } from "@/components/apb/AddTeamDialog";
 import { EditTeamDialog } from "@/components/apb/EditTeamDialog";
 import { useTeams, useSessions, toggleTeamStatus, killTeamSessions } from "@/lib/firebase/teams";
 import { Team } from "@/lib/firebase/schema";
-import { Loader2 } from "lucide-react";
+import { Loader2, Laptop, MoreVertical } from "lucide-react";
+import { ActiveSessionsModal } from "@/components/apb/ActiveSessionsModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +19,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical } from "lucide-react";
 
 export default function OrganizerTeams() {
   const { teams, loading } = useTeams();
@@ -26,6 +26,7 @@ export default function OrganizerTeams() {
   const [search, setSearch] = useState("");
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
 
   const filteredTeams = teams.filter((team) => 
     team.teamId.toLowerCase().includes(search.toLowerCase()) || 
@@ -39,7 +40,17 @@ export default function OrganizerTeams() {
           <h2 className="text-3xl font-mono font-bold uppercase tracking-wider text-white">Team Management</h2>
           <p className="text-muted-foreground">Manage participants and session limits.</p>
         </div>
-        <AddTeamDialog />
+        <div className="flex flex-wrap items-center gap-3">
+          <APBButton
+            variant="outline"
+            onClick={() => setSessionsModalOpen(true)}
+            className="font-mono text-xs text-amber-400 border-amber-500/40 hover:bg-amber-500/10"
+          >
+            <Laptop className="w-4 h-4 mr-2" />
+            Active Sessions ({sessions.length})
+          </APBButton>
+          <AddTeamDialog />
+        </div>
       </header>
 
       <APBCard className="p-6 space-y-6">
@@ -179,6 +190,14 @@ export default function OrganizerTeams() {
         team={editingTeam}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+      />
+
+      {/* Upgraded Active Sessions Modal */}
+      <ActiveSessionsModal
+        open={sessionsModalOpen}
+        onOpenChange={setSessionsModalOpen}
+        sessions={sessions}
+        teams={teams}
       />
     </div>
   );

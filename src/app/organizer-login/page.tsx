@@ -29,7 +29,7 @@ export default function OrganizerLogin() {
 
       if (!organizerDoc.exists()) {
         await signOut(auth);
-        setError(`Access Denied: Your Google account (UID: ${user.uid}) is not authorized as an organizer. Please add this UID to the 'organizers' collection in Firestore.`);
+        setError(`Access Denied: Your Google account (UID: ${user.uid}) is not authorized as an organizer.`);
         setLoading(false);
         return;
       }

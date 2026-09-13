@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { JudgeProtectedRoute } from "@/components/auth/JudgeProtectedRoute";
 import { Scale, LogOut, Award } from "lucide-react";
 import { APBButton } from "@/components/apb/APBButton";
@@ -67,6 +67,13 @@ function JudgeHeader() {
 }
 
 export default function JudgeLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isLoginPage = pathname === "/judge/login";
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
   return (
     <JudgeProtectedRoute>
       <div className="min-h-screen bg-background flex flex-col font-sans">

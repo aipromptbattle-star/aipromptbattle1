@@ -22,6 +22,7 @@ import { EventTimer } from "@/components/apb/EventTimer";
 import { SubmissionMonitor } from "@/components/apb/SubmissionMonitor";
 import { APBButton } from "@/components/apb/APBButton";
 import { ConfirmationDialog } from "@/components/apb/ConfirmationDialog";
+import { ActiveSessionsModal } from "@/components/apb/ActiveSessionsModal";
 import {
   Dialog,
   DialogContent,
@@ -511,9 +512,15 @@ export default function OrganizerDashboard() {
                   {teamRoundStates.filter(s => s.status === "IN_PROGRESS").length}
                 </span>
               </div>
-              <div className="flex justify-between border-b border-[var(--color-apb-surface-border)] pb-2">
+              <div className="flex justify-between items-center border-b border-[var(--color-apb-surface-border)] pb-2">
                 <span className="text-muted-foreground">Connected Devices:</span>
-                <span className="text-purple-400 font-bold">{sessions.length}</span>
+                <button 
+                  onClick={() => setSessionsModalOpen(true)}
+                  className="text-purple-400 font-bold hover:underline cursor-pointer flex items-center gap-1 font-mono"
+                  title="Open Active Workstation Sessions Manager"
+                >
+                  {sessions.length} Active ↗
+                </button>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Completion Rate:</span>
@@ -572,122 +579,14 @@ export default function OrganizerDashboard() {
         submissions={submissions}
       />
 
-      {/* Workstation Sessions Control Modal */}
-      <Dialog open={sessionsModalOpen} onOpenChange={setSessionsModalOpen}>
-        <DialogContent className="max-w-3xl bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-white max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between pr-6">
-              <DialogTitle className="text-xl font-mono uppercase text-white flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-red-400" />
-                <span>Workstation Sessions Control</span>
-              </DialogTitle>
-              <span className="font-mono text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded">
-                {sessions.length} Connected
-              </span>
-            </div>
-            <DialogDescription className="text-xs text-muted-foreground font-mono">
-              Inspect and terminate active participant device connections to free up slots.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-3">
-            {/* Search & Bulk Kill Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <input 
-                type="text"
-                placeholder="Filter by Team ID or Name..."
-                value={sessionSearch}
-                onChange={(e) => setSessionSearch(e.target.value)}
-                className="w-full sm:w-72 h-9 rounded bg-black/40 border border-[var(--color-apb-surface-border)] px-3 text-xs font-mono text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
-              />
-
-              <APBButton
-                variant="outline"
-                size="sm"
-                onClick={() => setKillAllDialogOpen(true)}
-                disabled={actionLoading || sessions.length === 0}
-                className="w-full sm:w-auto text-xs font-mono text-red-400 border-red-500/50 hover:bg-red-500/20"
-                title="Emergency action: Terminates every participant workstation session across all teams."
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Emergency: Kill All ({sessions.length}) Sessions
-              </APBButton>
-            </div>
-
-            {/* Sessions Table */}
-            <div className="rounded border border-[var(--color-apb-surface-border)] overflow-x-auto bg-black/30">
-              <table className="w-full min-w-[550px] text-left text-xs font-mono">
-                <thead className="bg-white/[0.04] text-muted-foreground uppercase border-b border-[var(--color-apb-surface-border)]">
-                  <tr>
-                    <th className="px-3 py-2.5">Team ID</th>
-                    <th className="px-3 py-2.5">Team Name</th>
-                    <th className="px-3 py-2.5 hidden md:table-cell">Session UID</th>
-                    <th className="px-3 py-2.5">Connected</th>
-                    <th className="px-3 py-2.5 text-right">Kill Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-apb-surface-border)]">
-                  {filteredSessions.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
-                        {sessions.length === 0 ? "No active device sessions found." : "No sessions match filter."}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredSessions.map((s) => {
-                      const team = teams.find((t) => t.teamId === s.teamId);
-                      return (
-                        <tr key={s.id || s.teamId + s.connectedAt} className="hover:bg-white/[0.02]">
-                          <td className="px-3 py-2.5 font-bold text-[var(--color-apb-cyan)]">{s.teamId}</td>
-                          <td className="px-3 py-2.5 text-white">{team?.displayName || "—"}</td>
-                          <td className="px-3 py-2.5 text-muted-foreground hidden md:table-cell font-mono text-[11px]">
-                            {s.id ? `${s.id.slice(0, 12)}...` : "—"}
-                          </td>
-                          <td className="px-3 py-2.5 text-muted-foreground">
-                            {s.connectedAt ? new Date(s.connectedAt).toLocaleTimeString() : "—"}
-                          </td>
-                          <td className="px-3 py-2.5 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {s.id && (
-                                <button
-                                  onClick={() => handleKillSingleSession(s.id!, s.teamId)}
-                                  disabled={actionLoading}
-                                  className="px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 text-[11px] transition-colors"
-                                  title="Terminate this single device session"
-                                >
-                                  Kill Device
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleKillTeamSessions(s.teamId)}
-                                disabled={actionLoading}
-                                className="px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 text-[11px] transition-colors"
-                                title={`Terminate all devices for team ${s.teamId}`}
-                              >
-                                Kill Team
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* High-Friction Emergency Confirmation Dialog: Kill All Sessions */}
-      <ConfirmationDialog
-        open={killAllDialogOpen}
-        onOpenChange={setKillAllDialogOpen}
-        title="EMERGENCY: DISCONNECT ALL SESSIONS?"
-        description={`WARNING: This is a hall-wide emergency reset operation.\n\nIt will immediately terminate and disconnect ALL active participant devices across every team in the event.\n\nActive participant screens will immediately be kicked back to the login screen. Team registrations, submissions, scores, and round configurations will NOT be deleted, but all participants will be required to re-authenticate.\n\nThis action should NEVER be used as routine pre-event cleanup.`}
-        confirmText="TERMINATE ALL SESSIONS"
-        destructive={true}
-        typedConfirmationPhrase="KILL ALL SESSIONS"
-        onConfirm={handleExecuteKillAllSessions}
+      {/* Upgraded Workstation Sessions Control Modal */}
+      <ActiveSessionsModal
+        open={sessionsModalOpen}
+        onOpenChange={setSessionsModalOpen}
+        sessions={sessions}
+        teams={teams}
+        onSuccessMessage={(msg) => showNotification("success", msg)}
+        onErrorMessage={(msg) => showNotification("error", msg)}
       />
     </div>
   );
