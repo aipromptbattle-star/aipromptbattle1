@@ -233,10 +233,43 @@ export function useDraft(eventId: string | null, teamId: string | null, roundId:
     });
   }, [eventId, teamId, roundId]);
 
+  const saveNow = useCallback(async () => {
+    if (!eventId || !teamId || !roundId) return;
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    const local = getLocalDraft(eventId, teamId, roundId);
+    if (!local) return;
+    try {
+      setSaveStatus("SAVING");
+      const docId = getDraftDocId(eventId, teamId, roundId);
+      const draftRef = doc(db, "drafts", docId);
+      const stateRef = doc(db, "teamRoundState", docId);
+
+      await setDoc(draftRef, local, { merge: true });
+      const stateUpdate: Partial<TeamRoundState> = {
+        eventId,
+        teamId,
+        roundId,
+        status: "IN_PROGRESS",
+        lastSavedAt: local.updatedAt || Date.now(),
+        version: local.version || 1,
+        updatedAt: Date.now(),
+      };
+      await setDoc(stateRef, stateUpdate, { merge: true });
+      setSaveStatus("SAVED");
+    } catch (err) {
+      console.error("Immediate save failed:", err);
+      setSaveStatus("ERROR");
+    }
+  }, [eventId, teamId, roundId]);
+
   return {
     draft,
     loading,
     saveStatus,
     updateDraft,
+    saveNow,
   };
 }

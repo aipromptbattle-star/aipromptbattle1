@@ -38,10 +38,11 @@ export default function JudgeSubmissionWorkspace() {
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [round, setRound] = useState<Round | null>(null);
   const [judgeScore, setJudgeScore] = useState<JudgeScore | null>(null);
+  const [teamDisplayName, setTeamDisplayName] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  // Evaluation Form State
-  const [scores, setScores] = useState<Record<string, number>>({});
+  // Single Overall Evaluation State (0-100 integer)
+  const [score, setScore] = useState<number>(75);
   const [comments, setComments] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmFinalizeOpen, setConfirmFinalizeOpen] = useState(false);
@@ -62,6 +63,19 @@ export default function JudgeSubmissionWorkspace() {
         const subData = { id: subSnap.id, ...subSnap.data() } as Submission;
         setSubmission(subData);
 
+        // Fetch team display name
+        if (subData.teamId) {
+          try {
+            const teamRef = doc(db, "teams", subData.teamId.toUpperCase());
+            const teamSnap = await getDoc(teamRef);
+            if (teamSnap.exists()) {
+              setTeamDisplayName(teamSnap.data().displayName || "");
+            }
+          } catch (e) {
+            console.warn("Could not fetch team name:", e);
+          }
+        }
+
         // 2. Fetch round
         if (subData.roundId) {
           const roundRef = doc(db, "rounds", subData.roundId);
@@ -78,15 +92,15 @@ export default function JudgeSubmissionWorkspace() {
         if (scoreSnap.exists()) {
           const s = scoreSnap.data() as JudgeScore;
           setJudgeScore(s);
-          setScores(s.criteriaScores || {});
+          const loadedScore = s.overrideScore !== undefined
+            ? s.overrideScore
+            : s.finalScore !== undefined
+            ? s.finalScore
+            : 75;
+          setScore(loadedScore);
           setComments(s.comments || "");
         } else {
-          // Initialize defaults for criteria
-          setScores({
-            promptQuality: 75,
-            creativity: 75,
-            adherence: 75,
-          });
+          setScore(75);
         }
       } catch (err) {
         console.error("Failed to load workspace data:", err);
@@ -105,20 +119,17 @@ export default function JudgeSubmissionWorkspace() {
     );
   }
 
-  const criteriaList: ScoringCriterion[] = round?.scoringCriteria && round.scoringCriteria.length > 0
-    ? round.scoringCriteria
-    : DEFAULT_SCORING_CRITERIA;
-
-  const calculatedScore = calculateDeterministicScore(scores, criteriaList);
   const isFinalized = judgeScore?.status === "FINAL";
 
-  const handleScoreChange = (id: string, val: number) => {
+  const handleScoreChange = (val: number) => {
     if (isFinalized) return;
-    setScores((prev) => ({ ...prev, [id]: val }));
+    const clamped = Math.min(100, Math.max(0, Math.round(val)));
+    setScore(clamped);
   };
 
   const handleSave = async (status: "DRAFT" | "FINAL") => {
     setSaving(true);
+    const validScore = Math.min(100, Math.max(0, Math.round(score)));
     try {
       await saveJudgeScore({
         eventId: submission.eventId,
@@ -127,18 +138,16 @@ export default function JudgeSubmissionWorkspace() {
         teamId: submission.teamId,
         judgeId: user.uid,
         judgeName: user.displayName || user.email || "Official Judge",
-        criteriaScores: scores,
+        score: validScore,
         comments,
         status,
-        criteria: criteriaList,
       });
 
       // Reload local state
       setJudgeScore((prev) => ({
         ...(prev || ({} as JudgeScore)),
         status,
-        finalScore: calculatedScore,
-        criteriaScores: scores,
+        finalScore: validScore,
         comments,
       }));
 
@@ -178,8 +187,13 @@ export default function JudgeSubmissionWorkspace() {
             <span className="text-xs font-mono uppercase text-[var(--color-apb-cyan)] tracking-widest">
               Submission Evaluation
             </span>
-            <h2 className="text-2xl font-mono font-bold text-white uppercase">
-              Team Workstation: {submission.teamId}
+            <h2 className="text-2xl font-mono font-bold text-white uppercase flex items-center gap-2">
+              <span>Team {submission.teamId}</span>
+              {teamDisplayName && (
+                <span className="text-lg font-sans font-normal text-muted-foreground">
+                  • {teamDisplayName}
+                </span>
+              )}
             </h2>
           </div>
 
@@ -291,66 +305,78 @@ export default function JudgeSubmissionWorkspace() {
                   <Star className="w-5 h-5 text-yellow-400" /> Evaluation Sheet
                 </h3>
                 <span className="text-[10px] font-mono text-muted-foreground">
-                  Deterministic criteria scoring
+                  Overall single score
                 </span>
               </div>
 
               {/* Total Score Badge */}
               <div className="text-right">
                 <div className="text-3xl font-mono font-bold text-[var(--color-apb-cyan)]">
-                  {calculatedScore}
+                  {score}
                 </div>
                 <div className="text-[10px] font-mono text-muted-foreground uppercase">/ 100 PTS</div>
               </div>
             </div>
 
-            {/* Criteria Inputs */}
-            <div className="space-y-5">
-              {criteriaList.map((criterion) => {
-                const currentVal = scores[criterion.id] ?? 0;
-                return (
-                  <div key={criterion.id} className="space-y-2 p-3.5 rounded-lg bg-black/40 border border-[var(--color-apb-surface-border)]">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-xs font-mono font-bold uppercase text-white">
-                          {criterion.name}
-                        </Label>
-                        <span className="text-[10px] font-mono text-muted-foreground block">
-                          Weight: {criterion.weight}x • Max: {criterion.maxScore}
-                        </span>
-                      </div>
-                      <div className="w-16">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={criterion.maxScore}
-                          value={currentVal}
-                          disabled={isFinalized || saving}
-                          onChange={(e) => handleScoreChange(criterion.id, parseInt(e.target.value) || 0)}
-                          className="font-mono text-sm text-center h-8"
-                        />
-                      </div>
-                    </div>
+            {/* Single Overall Score Control */}
+            <div className="space-y-4 p-4 rounded-lg bg-black/40 border border-[var(--color-apb-surface-border)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-mono font-bold uppercase text-white">
+                    Overall Evaluation Score
+                  </Label>
+                  <span className="text-xs font-mono text-muted-foreground block">
+                    Direct Integer (0 – 100)
+                  </span>
+                </div>
+                <div className="w-24">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={score}
+                    disabled={isFinalized || saving}
+                    onChange={(e) => handleScoreChange(parseInt(e.target.value) || 0)}
+                    className="font-mono text-xl font-bold text-center h-11 border-[var(--color-apb-cyan)]/40 bg-black/60 text-[var(--color-apb-cyan)]"
+                  />
+                </div>
+              </div>
 
-                    <input
-                      type="range"
-                      min={0}
-                      max={criterion.maxScore}
-                      step={1}
-                      value={currentVal}
+              {/* Slider */}
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={score}
+                disabled={isFinalized || saving}
+                onChange={(e) => handleScoreChange(parseInt(e.target.value) || 0)}
+                className="w-full accent-[var(--color-apb-cyan)] bg-slate-800 rounded-lg cursor-pointer h-2.5 py-1"
+              />
+
+              {/* Quick Score Presets */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[10px] font-mono uppercase text-muted-foreground">
+                  Quick Presets:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[50, 60, 70, 75, 80, 85, 90, 95, 100].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
                       disabled={isFinalized || saving}
-                      onChange={(e) => handleScoreChange(criterion.id, parseInt(e.target.value) || 0)}
-                      className="w-full accent-[var(--color-apb-cyan)] bg-slate-800 rounded-lg cursor-pointer h-2 py-1"
-                    />
-
-                    {criterion.description && (
-                      <p className="text-[10px] text-muted-foreground font-mono">
-                        {criterion.description}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+                      onClick={() => handleScoreChange(preset)}
+                      className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                        score === preset
+                          ? "bg-[var(--color-apb-cyan)] text-black font-bold"
+                          : "bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Comments Field */}
@@ -424,7 +450,7 @@ export default function JudgeSubmissionWorkspace() {
         open={confirmFinalizeOpen}
         onOpenChange={setConfirmFinalizeOpen}
         title="Finalize Evaluation?"
-        description={`You are about to commit a final score of ${calculatedScore}/100 for Team ${submission.teamId}. Once finalized, this evaluation cannot be edited by the judge.`}
+        description={`You are about to commit a final score of ${score}/100 for Team ${submission.teamId}. Once finalized, this evaluation cannot be edited by the judge.`}
         confirmText={saving ? "Finalizing..." : "Yes, Finalize Score"}
         cancelText="Keep Editing"
         onConfirm={() => handleSave("FINAL")}

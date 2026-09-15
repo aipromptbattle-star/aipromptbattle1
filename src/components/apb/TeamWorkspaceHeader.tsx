@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Round } from "@/lib/firebase/schema";
 import { MemberRole } from "@/lib/auth/TeamSessionContext";
-import { EventTimer } from "./EventTimer";
+import { CircularTimer } from "./CircularTimer";
 import { StatusBadge } from "./StatusBadge";
 import { APBButton } from "./APBButton";
 import { WifiOff, CheckCircle2, Loader2, AlertCircle, User, LogOut, ArrowLeftRight } from "lucide-react";
@@ -148,9 +148,9 @@ export function TeamWorkspaceHeader({
             </div>
           </div>
 
-          {/* Authoritative Timer */}
-          <div className="flex items-center bg-black/40 border border-[var(--color-apb-surface-border)] px-3 py-1 rounded-md">
-            <EventTimer round={round} className="!text-2xl md:!text-3xl" />
+          {/* Authoritative Circular Timer */}
+          <div className="flex items-center bg-black/50 border border-[var(--color-apb-surface-border)] px-2.5 py-1 rounded-lg">
+            <CircularTimer round={round} size={50} strokeWidth={4} />
           </div>
 
           {/* Leave Button */}

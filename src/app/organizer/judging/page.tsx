@@ -67,11 +67,7 @@ function SubmissionJudgingCard({
   onUpdate: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [directScores, setDirectScores] = useState({
-    promptQuality: submission.criteriaScores?.promptQuality ?? 75,
-    creativity: submission.criteriaScores?.creativity ?? 75,
-    adherence: submission.criteriaScores?.adherence ?? 75,
-  });
+  const [directScore, setDirectScore] = useState<number>(submission.score ?? 75);
   const [directComments, setDirectComments] = useState(submission.judgeComments ?? "");
   const [savingDirect, setSavingDirect] = useState(false);
 
@@ -83,10 +79,6 @@ function SubmissionJudgingCard({
 
   // Assignment selection state
   const [selectedJudgeId, setSelectedJudgeId] = useState("");
-
-  const directTotal = Math.round(
-    (directScores.promptQuality + directScores.creativity + directScores.adherence) / 3
-  );
 
   // Filter judge scores & assignments for this submission
   const subScores = scores.filter((s) => s.submissionId === submission.id);
@@ -107,22 +99,22 @@ function SubmissionJudgingCard({
       const ref = doc(db, "submissions", submission.id);
       const now = Date.now();
       const previousScore = submission.score ?? 0;
+      const validScore = Math.min(100, Math.max(0, Math.round(directScore)));
       const updates: Partial<Submission> = {
-        score: directTotal,
-        criteriaScores: directScores,
+        score: validScore,
         judgeComments: directComments,
         evaluatedBy: "organizer",
         evaluatedAt: now,
       };
-      if (previousScore && previousScore !== directTotal) {
+      if (previousScore && previousScore !== validScore) {
         updates.scoreHistory = [
           ...(submission.scoreHistory ?? []),
-          { previousScore, newScore: directTotal, modifiedBy: "organizer", timestamp: now },
+          { previousScore, newScore: validScore, modifiedBy: "organizer", timestamp: now },
         ];
       }
       await updateDoc(ref, updates as Record<string, unknown>);
       await logAudit("SUBMISSION_SCORED", "ORGANIZER", {
-        metadata: { submissionId: submission.id, teamId: submission.teamId, score: directTotal },
+        metadata: { submissionId: submission.id, teamId: submission.teamId, score: validScore },
       });
       onUpdate();
     } catch (err) {
@@ -364,32 +356,31 @@ function SubmissionJudgingCard({
           {/* Direct Organizer Fallback Scoring */}
           <div className="p-4 rounded-lg bg-[var(--color-apb-surface)]/70 border border-[var(--color-apb-surface-border)] space-y-4">
             <span className="text-xs font-mono uppercase font-bold text-white flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-yellow-400" /> Direct Organizer Evaluation
+              <Star className="w-3.5 h-3.5 text-yellow-400" /> Direct Organizer Evaluation (0–100 Integer Score)
             </span>
 
-            <div className="grid grid-cols-3 gap-3">
-              {(["promptQuality", "creativity", "adherence"] as const).map((key) => (
-                <div key={key} className="space-y-1">
-                  <Label className="text-[10px] font-mono uppercase text-muted-foreground">
-                    {key.replace(/([A-Z])/g, " $1")}
-                  </Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={directScores[key]}
-                    onChange={(e) =>
-                      setDirectScores({ ...directScores, [key]: parseInt(e.target.value) || 0 })
-                    }
-                    className="font-mono text-sm text-center h-8"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between font-mono text-xs">
-              <span className="text-muted-foreground">Calculated Score:</span>
-              <span className="text-white font-bold text-sm">{directTotal}/100</span>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={directScore}
+                  onChange={(e) => setDirectScore(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                  className="w-full accent-[var(--color-apb-cyan)] bg-slate-800 rounded-lg cursor-pointer h-2 py-1"
+                />
+              </div>
+              <div className="w-24">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={directScore}
+                  onChange={(e) => setDirectScore(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                  className="font-mono text-sm text-center h-9 font-bold text-[var(--color-apb-cyan)]"
+                />
+              </div>
             </div>
 
             <textarea

@@ -53,7 +53,8 @@ export async function confirmQualifications(
   roundId: string,
   qualifiedTeamIds: string[],
   teamRankings: { teamId: string; rank: number; score: number }[],
-  organizerUid: string
+  organizerUid: string,
+  nextRoundInfo?: { nextRoundId: string; nextRoundNumber: number }
 ) {
   const now = Date.now();
 
@@ -77,12 +78,62 @@ export async function confirmQualifications(
     await setDoc(qualRef, qualData);
   }
 
-  // Update round doc
+  // Update current round doc
   const roundRef = doc(db, "rounds", roundId);
   await updateDoc(roundRef, {
     qualifiedTeams: qualifiedTeamIds,
     updatedAt: now,
   });
+
+  // If next round exists, automatically place qualified teams into next round's participant pool
+  if (nextRoundInfo?.nextRoundId && nextRoundInfo?.nextRoundNumber) {
+    // 1. Update next round document with qualified teams
+    const nextRoundRef = doc(db, "rounds", nextRoundInfo.nextRoundId);
+    await updateDoc(nextRoundRef, {
+      qualifiedTeams: qualifiedTeamIds,
+      updatedAt: now,
+    });
+
+    // 2. Automatically update each qualified team's eligibleRounds array
+    for (const teamId of qualifiedTeamIds) {
+      try {
+        const teamRef = doc(db, "teams", teamId);
+        const teamSnap = await getDoc(teamRef);
+        if (teamSnap.exists()) {
+          const existingRounds = teamSnap.data().eligibleRounds || [];
+          if (!existingRounds.includes(nextRoundInfo.nextRoundNumber)) {
+            await updateDoc(teamRef, {
+              eligibleRounds: [...existingRounds, nextRoundInfo.nextRoundNumber],
+              updatedAt: now,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn(`Could not update eligibleRounds for team ${teamId}:`, e);
+      }
+    }
+
+    // 3. Reconcile non-qualified teams (remove next round from eligibleRounds if previously set)
+    for (const item of teamRankings) {
+      if (!qualifiedTeamIds.includes(item.teamId)) {
+        try {
+          const teamRef = doc(db, "teams", item.teamId);
+          const teamSnap = await getDoc(teamRef);
+          if (teamSnap.exists()) {
+            const existingRounds = teamSnap.data().eligibleRounds || [];
+            if (existingRounds.includes(nextRoundInfo.nextRoundNumber)) {
+              await updateDoc(teamRef, {
+                eligibleRounds: existingRounds.filter((r: number) => r !== nextRoundInfo.nextRoundNumber),
+                updatedAt: now,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn(`Could not reconcile eligibleRounds for non-qualified team ${item.teamId}:`, e);
+        }
+      }
+    }
+  }
 
   await logAudit("QUALIFICATION_CONFIRMED", "ORGANIZER", {
     roundId,
@@ -90,6 +141,7 @@ export async function confirmQualifications(
       roundId,
       qualifiedCount: qualifiedTeamIds.length,
       qualifiedTeams: qualifiedTeamIds,
+      nextRoundId: nextRoundInfo?.nextRoundId || null,
       organizerUid,
     },
   });
@@ -102,7 +154,8 @@ export async function confirmQualifications(
  * 1. Checks that qualifications are confirmed.
  * 2. Updates eligibleRounds for each qualified team so they gain access.
  * 3. Sets the next round to READY / LIVE as designated.
- * 4. Logs NEXT_ROUND_RELEASED.
+ * 4. Updates event currentRoundId so waiting room and displays switch to next round.
+ * 5. Logs NEXT_ROUND_RELEASED.
  */
 export async function releaseNextRound(
   currentRoundId: string,
@@ -128,12 +181,23 @@ export async function releaseNextRound(
     }
   }
 
-  // 2. Set next round status to READY or LIVE
+  // 2. Set next round status to READY
   const nextRoundRef = doc(db, "rounds", nextRoundId);
   await updateDoc(nextRoundRef, {
     status: "READY",
     updatedAt: now,
   });
+
+  // 3. Point event to next round so participant waiting room transitions
+  try {
+    const eventRef = doc(db, "events", "currentEvent");
+    await updateDoc(eventRef, {
+      currentRoundId: nextRoundId,
+      updatedAt: now,
+    });
+  } catch (e) {
+    console.warn("Could not update events/currentEvent currentRoundId:", e);
+  }
 
   await logAudit("NEXT_ROUND_RELEASED", "ORGANIZER", {
     roundId: nextRoundId,

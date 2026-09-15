@@ -44,7 +44,7 @@ export default function ParticipantDashboard() {
   }, []);
 
   // Draft hook
-  const { draft, saveStatus, updateDraft } = useDraft(
+  const { draft, saveStatus, updateDraft, saveNow } = useDraft(
     eventId,
     teamId,
     currentRound?.id || null
@@ -177,6 +177,13 @@ export default function ParticipantDashboard() {
             <p className="text-sm text-slate-400 max-w-md mx-auto">
               Please remain on this screen. When the organizer initiates Round {currentRound ? currentRound.roundNumber : 1}, your competition workspace will unlock automatically.
             </p>
+            {currentRound?.qualifiedTeams && currentRound.qualifiedTeams.length > 0 && (
+              <div className="pt-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-apb-cyan)]/10 border border-[var(--color-apb-cyan)]/30 text-[var(--color-apb-cyan)] font-mono text-xs font-bold uppercase tracking-wider">
+                  {currentRound.qualifiedTeams.length} Teams Entered
+                </span>
+              </div>
+            )}
           </APBCard>
         </main>
       </div>
@@ -301,14 +308,16 @@ export default function ParticipantDashboard() {
             value={currentPrompt}
             onChange={(newPrompt) => {
               updateDraft((prev) => ({
-                ...prev,
-                prompt: newPrompt,
-                member1Data: { ...prev.member1Data, text: newPrompt },
-              }), memberRole);
-            }}
+                 ...prev,
+                 prompt: newPrompt,
+                 member1Data: { ...prev.member1Data, text: newPrompt },
+               }), memberRole);
+             }}
             isMyRole={memberRole === "member1"}
             member1Name={teamData?.member1}
             readOnly={isReadOnly}
+            saveStatus={saveStatus}
+            onSave={saveNow}
           />
 
           {/* Member 2: Creative / Image Workspace */}

@@ -262,8 +262,9 @@ export async function saveJudgeScore(data: {
   teamId: string;
   judgeId: string;
   judgeName: string;
-  criteriaScores: Record<string, number>;
-  comments: string;
+  score?: number; // Single overall score (0-100 integer)
+  criteriaScores?: Record<string, number>;
+  comments?: string;
   status: "DRAFT" | "FINAL";
   criteria?: ScoringCriterion[];
 }) {
@@ -276,7 +277,17 @@ export async function saveJudgeScore(data: {
     throw new Error("Score is finalized and cannot be converted back to DRAFT by a judge.");
   }
 
-  const finalScore = calculateDeterministicScore(data.criteriaScores, data.criteria);
+  let finalScore = 0;
+  if (data.score !== undefined) {
+    const raw = Number(data.score);
+    if (!Number.isInteger(raw) || raw < 0 || raw > 100) {
+      throw new Error("Overall score must be an integer between 0 and 100.");
+    }
+    finalScore = raw;
+  } else if (data.criteriaScores) {
+    finalScore = calculateDeterministicScore(data.criteriaScores, data.criteria);
+  }
+
   const now = Date.now();
 
   const scorePayload: JudgeScore = {
@@ -287,9 +298,9 @@ export async function saveJudgeScore(data: {
     teamId: data.teamId,
     judgeId: data.judgeId,
     judgeName: data.judgeName,
-    criteriaScores: data.criteriaScores,
+    criteriaScores: data.criteriaScores || {},
     finalScore,
-    comments: data.comments.trim(),
+    comments: (data.comments || "").trim(),
     status: data.status,
     createdAt: existingSnap.exists() ? existingSnap.data().createdAt : now,
     updatedAt: now,

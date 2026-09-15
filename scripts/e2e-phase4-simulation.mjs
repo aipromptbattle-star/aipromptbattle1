@@ -48,10 +48,15 @@ import {
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import {
-  calculateDeterministicScore,
-  compareSubmissionsDeterministically,
-} from "../src/lib/scoring.js";
+
+function compareSubmissionsDeterministically(a, b) {
+  const scoreA = a.score ?? a.totalScore ?? 0;
+  const scoreB = b.score ?? b.totalScore ?? 0;
+  if (scoreB !== scoreA) {
+    return scoreB - scoreA;
+  }
+  return (a.submittedAt || 0) - (b.submittedAt || 0);
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

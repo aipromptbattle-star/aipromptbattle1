@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useJudgeAssignments, useJudgeScores } from "@/lib/firebase/judging";
 import { useEventState, useCurrentRound } from "@/lib/firebase/events";
+import { useTeams } from "@/lib/firebase/teams";
 import { APBCard } from "@/components/apb/APBCard";
 import { APBButton } from "@/components/apb/APBButton";
 import { StatusBadge } from "@/components/apb/StatusBadge";
-import { Loader2, CheckCircle2, Clock, Scale, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, CheckCircle2, Clock, Scale, ArrowRight, AlertCircle, Sparkles, Search } from "lucide-react";
 
 export default function JudgeDashboard() {
   const { user } = useAuth();
@@ -17,10 +19,12 @@ export default function JudgeDashboard() {
 
   const { assignments, loading: assignmentsLoading } = useJudgeAssignments(user?.uid);
   const { scores, loading: scoresLoading } = useJudgeScores(null, null);
+  const { teams, loading: teamsLoading } = useTeams();
 
   const [filter, setFilter] = useState<"ALL" | "PENDING" | "COMPLETED">("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  if (eventLoading || roundLoading || assignmentsLoading || scoresLoading) {
+  if (eventLoading || roundLoading || assignmentsLoading || scoresLoading || teamsLoading) {
     return (
       <div className="flex justify-center p-16">
         <Loader2 className="w-8 h-8 animate-spin text-[var(--color-apb-cyan)]" />
@@ -28,12 +32,22 @@ export default function JudgeDashboard() {
     );
   }
 
+  // Create team map for instant lookup of Team Name
+  const teamMap = new Map<string, string>();
+  teams.forEach((t) => {
+    if (t.teamId) {
+      teamMap.set(t.teamId.toUpperCase(), t.displayName || t.teamId);
+    }
+  });
+
   // Correlate assignments with scores
   const enrichedAssignments = assignments.map((a) => {
     const scoreDoc = scores.find((s) => s.submissionId === a.submissionId && s.judgeId === user?.uid);
     const isCompleted = scoreDoc?.status === "FINAL";
+    const teamName = teamMap.get(a.teamId.toUpperCase()) || "";
     return {
       ...a,
+      teamName,
       scoreDoc,
       isCompleted,
     };
@@ -45,8 +59,17 @@ export default function JudgeDashboard() {
   const progressPct = totalAssigned > 0 ? Math.round((completedCount / totalAssigned) * 100) : 0;
 
   const filteredList = enrichedAssignments.filter((a) => {
-    if (filter === "PENDING") return !a.isCompleted;
-    if (filter === "COMPLETED") return a.isCompleted;
+    // Tab filter
+    if (filter === "PENDING" && a.isCompleted) return false;
+    if (filter === "COMPLETED" && !a.isCompleted) return false;
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchId = a.teamId.toLowerCase().includes(q);
+      const matchName = a.teamName.toLowerCase().includes(q);
+      return matchId || matchName;
+    }
     return true;
   });
 
@@ -115,39 +138,51 @@ export default function JudgeDashboard() {
         </APBCard>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-[var(--color-apb-surface-border)] pb-2">
-        <APBButton
-          size="sm"
-          variant={filter === "ALL" ? "default" : "outline"}
-          onClick={() => setFilter("ALL")}
-          className="text-xs"
-        >
-          All ({totalAssigned})
-        </APBButton>
-        <APBButton
-          size="sm"
-          variant={filter === "PENDING" ? "default" : "outline"}
-          onClick={() => setFilter("PENDING")}
-          className="text-xs"
-        >
-          Pending ({pendingCount})
-        </APBButton>
-        <APBButton
-          size="sm"
-          variant={filter === "COMPLETED" ? "default" : "outline"}
-          onClick={() => setFilter("COMPLETED")}
-          className="text-xs"
-        >
-          Completed ({completedCount})
-        </APBButton>
+      {/* Filter Tabs & Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--color-apb-surface-border)] pb-3">
+        <div className="flex gap-2">
+          <APBButton
+            size="sm"
+            variant={filter === "ALL" ? "default" : "outline"}
+            onClick={() => setFilter("ALL")}
+            className="text-xs"
+          >
+            All ({totalAssigned})
+          </APBButton>
+          <APBButton
+            size="sm"
+            variant={filter === "PENDING" ? "default" : "outline"}
+            onClick={() => setFilter("PENDING")}
+            className="text-xs"
+          >
+            Pending ({pendingCount})
+          </APBButton>
+          <APBButton
+            size="sm"
+            variant={filter === "COMPLETED" ? "default" : "outline"}
+            onClick={() => setFilter("COMPLETED")}
+            className="text-xs"
+          >
+            Completed ({completedCount})
+          </APBButton>
+        </div>
+
+        <div className="relative w-full sm:w-72">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search Team ID or Name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9 font-mono text-xs bg-black/40"
+          />
+        </div>
       </div>
 
       {/* Submissions List */}
       {filteredList.length === 0 ? (
         <div className="h-48 border border-dashed border-[var(--color-apb-surface-border)] rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground">
           <Scale className="w-8 h-8 opacity-40" />
-          <span>No {filter.toLowerCase()} submissions found for your account.</span>
+          <span>No {filter.toLowerCase()} submissions found matching your search.</span>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -163,7 +198,14 @@ export default function JudgeDashboard() {
                   <span className="text-[10px] font-mono uppercase text-muted-foreground block">
                     Team Workstation
                   </span>
-                  <h3 className="text-lg font-mono font-bold text-white">{item.teamId}</h3>
+                  <div className="flex items-baseline gap-2">
+                    <h3 className="text-lg font-mono font-bold text-white">{item.teamId}</h3>
+                    {item.teamName && (
+                      <span className="text-xs font-mono text-slate-300">
+                        ({item.teamName})
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs font-mono text-muted-foreground block mt-0.5">
                     Assigned: {new Date(item.createdAt).toLocaleTimeString()}
                   </span>

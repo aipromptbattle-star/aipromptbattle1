@@ -27,25 +27,27 @@ function LoginContent() {
   const router = useRouter();
   const { joinTeam } = useTeamSession();
 
-  // Two-way trigger: Support keyboard shortcuts (Alt+O or Ctrl+Shift+O or Ctrl+Shift+Alt+O)
+  // Strict trigger: Requires all three modifiers: Ctrl + Shift + Alt
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const isO = e.code === "KeyO" || e.key === "o" || e.key === "O";
-      if (!isO) return;
+      const isCtrlShiftAlt = e.ctrlKey && e.shiftKey && e.altKey;
+      if (!isCtrlShiftAlt) return;
 
-      const isAltO = e.altKey && !e.ctrlKey && !e.shiftKey;
-      const isCtrlShiftO = e.ctrlKey && e.shiftKey;
-      const isFullCombo = e.ctrlKey && e.shiftKey && e.altKey;
-
-      if (isAltO || isCtrlShiftO || isFullCombo) {
+      if (e.code === "KeyO" || e.key === "O" || e.key === "o") {
         e.preventDefault();
         setShowOrganizerModal(true);
+      } else if (e.code === "KeyJ" || e.key === "J" || e.key === "j") {
+        e.preventDefault();
+        router.push("/judge/login");
+      } else if (e.code === "KeyH" || e.key === "H" || e.key === "h") {
+        e.preventDefault();
+        router.push("/host");
       }
     };
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, []);
+  }, [router]);
 
   const handleParticipantLogin = async (e: React.FormEvent) => {
     e.preventDefault();
