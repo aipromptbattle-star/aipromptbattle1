@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { APBCard } from "@/components/apb/APBCard";
 import { APBButton } from "@/components/apb/APBButton";
 import { StatusBadge } from "@/components/apb/StatusBadge";
@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { AddTeamDialog } from "@/components/apb/AddTeamDialog";
 import { EditTeamDialog } from "@/components/apb/EditTeamDialog";
 import { useTeams, useSessions, toggleTeamStatus, killTeamSessions, addTeam } from "@/lib/firebase/teams";
+import { useEventState, updateEventSettings } from "@/lib/firebase/events";
 import { Team } from "@/lib/firebase/schema";
-import { Loader2, Laptop, MoreVertical, Copy, Check, KeyRound, Sparkles } from "lucide-react";
+import { Loader2, Laptop, MoreVertical, Copy, Check, KeyRound, Sparkles, Sheet, Save } from "lucide-react";
 import { ActiveSessionsModal } from "@/components/apb/ActiveSessionsModal";
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function OrganizerTeams() {
+  const { eventState } = useEventState();
   const { teams, loading } = useTeams();
   const { sessions } = useSessions();
   const [search, setSearch] = useState("");
@@ -29,6 +31,29 @@ export default function OrganizerTeams() {
   const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
   const [copiedTeamId, setCopiedTeamId] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [savingSheet, setSavingSheet] = useState(false);
+  const [sheetSavedMsg, setSheetSavedMsg] = useState(false);
+
+  // Sync sheetUrl from eventState
+  useEffect(() => {
+    if (eventState?.googleSheetsUrl) {
+      setSheetUrl(eventState.googleSheetsUrl);
+    }
+  }, [eventState?.googleSheetsUrl]);
+
+  const handleSaveSheetUrl = async () => {
+    setSavingSheet(true);
+    try {
+      await updateEventSettings({ googleSheetsUrl: sheetUrl });
+      setSheetSavedMsg(true);
+      setTimeout(() => setSheetSavedMsg(false), 3000);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Failed to save Sheet URL");
+    } finally {
+      setSavingSheet(false);
+    }
+  };
 
   const handleSeed4Teams = async () => {
     setSeeding(true);
@@ -127,29 +152,57 @@ export default function OrganizerTeams() {
         </div>
       </header>
 
-      <APBCard className="p-6 space-y-6">
-        <div>
-          <h3 className="text-lg font-mono font-bold text-white mb-4">Team Source</h3>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 p-4 rounded-md border border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]">
-              <div className="font-medium text-white mb-1">Manual Teams</div>
-              <p className="text-sm text-muted-foreground mb-4">Teams created manually via the Add Team button.</p>
-              <div className="text-xs font-mono text-[var(--color-apb-cyan)] uppercase tracking-wider">Active</div>
+      {/* Section 8: Google Sheets Registration Configuration */}
+      <APBCard className="p-6 space-y-4 border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div>
+            <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold mb-1">
+              REGISTRATION DATA SOURCE
             </div>
-            <div className="flex-1 p-4 rounded-md border border-[var(--color-apb-surface-border)] border-dashed bg-transparent opacity-60">
-              <div className="font-medium text-white mb-1">Google Sheets</div>
-              <p className="text-sm text-muted-foreground mb-4">Import teams automatically from a registration sheet.</p>
-              <APBButton variant="outline" size="sm" disabled className="w-full">
-                Connect Google Sheet
-              </APBButton>
-            </div>
+            <h3 className="text-lg font-mono font-bold text-white">Google Sheets Registration Form</h3>
           </div>
+          {eventState?.googleSheetsUrl ? (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold">
+              <Check className="w-3.5 h-3.5" />
+              ● CONFIGURED
+            </span>
+          ) : (
+            <span className="text-xs font-mono text-muted-foreground">
+              ○ NOT CONFIGURED
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-2 font-mono">
+          <label className="text-xs text-muted-foreground uppercase">Google Sheets Spreadsheet URL</label>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <input
+              type="url"
+              placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+              value={sheetUrl}
+              onChange={(e) => setSheetUrl(e.target.value)}
+              className="flex-1 w-full h-10 px-3.5 rounded-md bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
+            />
+            <APBButton
+              glow
+              size="sm"
+              onClick={handleSaveSheetUrl}
+              disabled={savingSheet}
+              className="h-10 px-6 font-mono text-xs uppercase tracking-wider shrink-0"
+            >
+              <Save className="w-3.5 h-3.5 mr-2" />
+              {savingSheet ? "Saving..." : sheetSavedMsg ? "Saved ✓" : "Save URL"}
+            </APBButton>
+          </div>
+          <p className="text-[11px] text-muted-foreground pt-1">
+            <strong>Note:</strong> Access IDs already exist in the registration Sheet. APB will not generate replacement Access IDs during sync. No live sync connector is faked.
+          </p>
         </div>
       </APBCard>
 
       <APBCard className="p-6 space-y-6">
         <div className="flex gap-4 items-center justify-between">
-          <h3 className="text-lg font-mono font-bold text-white">Existing Teams</h3>
+          <h3 className="text-lg font-mono font-bold text-white">Registered Teams</h3>
           <Input 
             placeholder="Search Team ID or Name..." 
             className="max-w-xs font-mono" 
@@ -164,7 +217,7 @@ export default function OrganizerTeams() {
               <tr>
                 <th className="px-4 py-3 font-medium">Team ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Access Code</th>
+                <th className="px-4 py-3 font-medium text-[var(--color-apb-cyan)] font-bold">Access ID</th>
                 <th className="px-4 py-3 font-medium hidden md:table-cell">Members</th>
                 <th className="px-4 py-3 font-medium">Sessions</th>
                 <th className="px-4 py-3 font-medium">Status</th>

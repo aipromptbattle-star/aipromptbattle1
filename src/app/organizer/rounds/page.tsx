@@ -218,161 +218,261 @@ export default function OrganizerRounds() {
         <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[var(--color-apb-cyan)]" /></div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {rounds.map(round => (
-            <APBCard key={round.id} className="p-6 space-y-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="text-[var(--color-apb-cyan)] font-mono text-sm tracking-widest uppercase">Round {round.roundNumber}</span>
-                    {round.challengeType && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-white border border-white/20">
-                        {round.challengeType}
+          {rounds.map(round => {
+            const isQuiz = round.templateType === "QUIZ" || round.roundNumber === 1;
+            const isProgressive = round.templateType === "PROGRESSIVE_CONSTRAINT" || round.roundNumber === 2;
+            const isLive = round.status === "LIVE";
+            const isStarting = round.status === "STARTING";
+
+            return (
+              <APBCard 
+                key={round.id} 
+                className={`p-6 sm:p-7 space-y-6 transition-all ${
+                  isLive 
+                    ? "border-emerald-500/60 bg-gradient-to-b from-emerald-950/10 via-[var(--color-apb-surface)] to-[var(--color-apb-surface)] shadow-[0_0_30px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30" 
+                    : isStarting 
+                    ? "border-amber-500/60 bg-amber-950/10 shadow-[0_0_30px_rgba(245,158,11,0.15)]"
+                    : "border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]"
+                }`}
+              >
+                {/* Round Header & Status */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-white/10 pb-5">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="font-mono text-xs font-black tracking-widest text-[var(--color-apb-cyan)] uppercase">
+                        ROUND 0{round.roundNumber}
                       </span>
-                    )}
-                    {(round.templateType === "QUIZ" || round.roundNumber === 1) && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-apb-cyan)]/15 text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30">
-                        🧠 QUIZ (20Q)
-                      </span>
-                    )}
-                    {(round.templateType === "PROGRESSIVE_CONSTRAINT" || round.roundNumber === 2) && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-apb-purple)]/15 text-[var(--color-apb-purple)] border border-[var(--color-apb-purple)]/30">
-                        ⚡ PROGRESSIVE (5 STAGES)
-                      </span>
-                    )}
+                      {isQuiz && (
+                        <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-apb-cyan)]/15 text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30">
+                          🧠 QUIZ
+                        </span>
+                      )}
+                      {isProgressive && (
+                        <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-apb-purple)]/15 text-purple-300 border border-[var(--color-apb-purple)]/30">
+                          ⚡ PROGRESSIVE CONSTRAINT
+                        </span>
+                      )}
+                      {!isQuiz && !isProgressive && (
+                        <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-white/10 text-white/80 border border-white/20">
+                          STANDARD
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-mono font-bold text-white tracking-wide">
+                      {round.title}
+                    </h3>
                   </div>
-                  <h3 className="text-xl font-bold text-white">{round.title}</h3>
-                  <div className="text-muted-foreground text-sm mt-1">
-                    {Math.floor(round.durationSeconds / 60)} min
-                    {round.durationSeconds % 60 > 0 ? ` ${round.durationSeconds % 60}s` : ""}
+
+                  <div className="shrink-0 flex items-center gap-2">
+                    <StatusBadge status={round.status} pulse={isLive || isStarting} />
                   </div>
                 </div>
-                <StatusBadge status={round.status} />
-              </div>
 
-              <div className="flex flex-wrap gap-2">
-                <APBButton size="sm" variant="ghost" onClick={() => setPreviewRound(round)} className="text-white/80 hover:text-white border border-white/10">
-                  <Eye className="w-4 h-4 mr-1.5 text-[var(--color-apb-cyan)]" /> Preview View
-                </APBButton>
-                {round.status === "READY" && (
-                  <>
-                    <APBButton size="sm" onClick={() => showConfirm({
-                      title: "Start Round",
-                      description: `Start Round ${round.roundNumber}: "${round.title}"? This will go LIVE for all participants.`,
-                      confirmText: "START",
-                      destructive: false,
-                      action: () => startRound(round.id, round.durationSeconds),
-                    })}>
-                      <Play className="w-4 h-4 mr-2" /> Start
-                    </APBButton>
-                    <APBButton size="sm" variant="outline" onClick={() => openEdit(round)}>
-                      <Edit className="w-4 h-4 mr-2" /> Edit
-                    </APBButton>
-                  </>
-                )}
-                
-                {round.status === "LIVE" && (
-                  <>
-                    <APBButton size="sm" variant="outline" onClick={() => pauseRound(round.id)}>
-                      <Pause className="w-4 h-4 mr-2" /> Pause
-                    </APBButton>
-                    <APBButton size="sm" variant="outline" onClick={() => extendTime(round.id, 60)}>
-                      <TimerReset className="w-4 h-4 mr-2" /> +1 Min
-                    </APBButton>
-                    <APBButton size="sm" variant="outline" onClick={() => extendTime(round.id, 120)}>
-                      <TimerReset className="w-4 h-4 mr-2" /> +2 Min
-                    </APBButton>
-                    <APBButton size="sm" variant="outline" onClick={() => extendTime(round.id, 300)}>
-                      <TimerReset className="w-4 h-4 mr-2" /> +5 Min
-                    </APBButton>
-                    <APBButton size="sm" variant="destructive" onClick={() => showConfirm({
-                      title: "End Round",
-                      description: `End Round ${round.roundNumber} now? Submissions will be locked immediately.`,
-                      confirmText: "END ROUND",
-                      destructive: true,
-                      action: () => endRound(round.id),
-                    })}>
-                      <Square className="w-4 h-4 mr-2" /> End
-                    </APBButton>
-                  </>
-                )}
-                
-                {round.status === "PAUSED" && (
-                  <>
-                    <APBButton size="sm" onClick={() => resumeRound(round.id)}>
-                      <Play className="w-4 h-4 mr-2" /> Resume
-                    </APBButton>
-                    <APBButton size="sm" variant="outline" onClick={() => extendTime(round.id, 60)}>
-                      <TimerReset className="w-4 h-4 mr-2" /> +1 Min
-                    </APBButton>
-                    <APBButton size="sm" variant="outline" onClick={() => extendTime(round.id, 300)}>
-                      <TimerReset className="w-4 h-4 mr-2" /> +5 Min
-                    </APBButton>
-                    <APBButton size="sm" variant="destructive" onClick={() => showConfirm({
-                      title: "End Round",
-                      description: `End Round ${round.roundNumber} now? Submissions will be locked.`,
-                      confirmText: "END ROUND",
-                      destructive: true,
-                      action: () => endRound(round.id),
-                    })}>
-                      <Square className="w-4 h-4 mr-2" /> End
-                    </APBButton>
-                    <APBButton size="sm" variant="outline" onClick={() => openEdit(round)}>
-                      <Edit className="w-4 h-4 mr-2" /> Edit
-                    </APBButton>
-                  </>
-                )}
-
-                {(round.status === "CLOSED" || round.status === "JUDGING" || round.status === "RESULTS") && (
-                  <>
-                    <APBButton size="sm" variant="outline" onClick={() => showConfirm({
-                      title: "Reopen Round",
-                      description: `Reopen Round ${round.roundNumber} for 5 more minutes?`,
-                      confirmText: "REOPEN",
-                      destructive: false,
-                      action: () => reopenRound(round.id, 300),
-                    })}>
-                      <RefreshCw className="w-4 h-4 mr-2" /> Reopen (5 min)
-                    </APBButton>
-                    <APBButton size="sm" variant="outline" onClick={() => showConfirm({
-                      title: "Reset Round",
-                      description: `Reset Round ${round.roundNumber} to READY? Submission data is NOT deleted.`,
-                      confirmText: "RESET",
-                      destructive: true,
-                      action: () => resetRound(round.id),
-                    })}>
-                      <RotateCcw className="w-4 h-4 mr-2" /> Reset
-                    </APBButton>
-                    <APBButton size="sm" variant="outline" onClick={() => openEdit(round)}>
-                      <Edit className="w-4 h-4 mr-2" /> Edit
-                    </APBButton>
-                  </>
-                )}
-
-                {round.status === "DRAFT" && (
-                  <APBButton size="sm" variant="outline" onClick={() => openEdit(round)}>
-                    <Edit className="w-4 h-4 mr-2" /> Edit
-                  </APBButton>
-                )}
-
-                <div className="ml-auto">
-                  <APBButton
-                    size="sm"
-                    variant="outline"
-                    disabled={round.status === "LIVE"}
-                    onClick={() => showConfirm({
-                      title: "Delete Round",
-                      description: `Permanently delete Round ${round.roundNumber}: "${round.title}"? This round configuration will be completely removed.`,
-                      confirmText: "DELETE ROUND",
-                      destructive: true,
-                      action: () => deleteRound(round.id),
-                    })}
-                    className="border-red-500/40 text-red-400 hover:bg-red-500/20 disabled:opacity-30 font-mono text-xs"
-                    title={round.status === "LIVE" ? "End the round before deleting." : "Delete this round"}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
-                  </APBButton>
+                {/* Section 5 Specs Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-xs">
+                  {isQuiz ? (
+                    <>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">STRUCTURE</div>
+                        <div className="text-sm font-bold text-white mt-0.5">20 QUESTIONS</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">DURATION</div>
+                        <div className="text-sm font-bold text-[var(--color-apb-cyan)] mt-0.5">20 MINUTES</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">EVALUATION</div>
+                        <div className="text-sm font-bold text-emerald-400 mt-0.5">1 PT / Q (A/B/C)</div>
+                      </div>
+                    </>
+                  ) : isProgressive ? (
+                    <>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">DURATION</div>
+                        <div className="text-sm font-bold text-[var(--color-apb-cyan)] mt-0.5">20 MINUTES</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">STAGES</div>
+                        <div className="text-sm font-bold text-purple-300 mt-0.5">5 STAGES</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">PACE</div>
+                        <div className="text-sm font-bold text-white mt-0.5">4 MIN / STAGE</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">DURATION</div>
+                        <div className="text-sm font-bold text-[var(--color-apb-cyan)] mt-0.5">
+                          {Math.floor(round.durationSeconds / 60)} MINUTES
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">CHALLENGE TYPE</div>
+                        <div className="text-sm font-bold text-white mt-0.5">{round.challengeType || "TEXT"}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">EVALUATION</div>
+                        <div className="text-sm font-bold text-white mt-0.5">0–100 SCORE</div>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
+
+                {/* Accessible Action Rows (Section 5) */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {/* Preview Button */}
+                    <APBButton 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => setPreviewRound(round)} 
+                      className="font-mono text-xs text-white/80 hover:text-white border-white/15 hover:bg-white/5"
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5 text-[var(--color-apb-cyan)]" /> Preview
+                    </APBButton>
+
+                    {/* Edit Button */}
+                    <APBButton 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => openEdit(round)}
+                      className="font-mono text-xs border-white/15 text-white/80 hover:text-white hover:bg-white/5"
+                    >
+                      <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
+                    </APBButton>
+
+                    {/* Start Action (When READY or DRAFT) */}
+                    {(round.status === "READY" || round.status === "DRAFT") && (
+                      <APBButton 
+                        size="sm" 
+                        glow
+                        onClick={() => showConfirm({
+                          title: "Start Authoritative Round",
+                          description: `Start Round 0${round.roundNumber}: "${round.title}"? This will trigger the synchronized 5-second countdown on the Organizer console and Public Host Display screen.`,
+                          confirmText: "START ROUND",
+                          destructive: false,
+                          action: () => startRound(round.id, round.durationSeconds),
+                        })}
+                        className="font-mono text-xs uppercase"
+                      >
+                        <Play className="w-3.5 h-3.5 mr-1.5" /> Start
+                      </APBButton>
+                    )}
+
+                    {/* Live controls */}
+                    {round.status === "LIVE" && (
+                      <>
+                        <APBButton 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => pauseRound(round.id)}
+                          className="font-mono text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                        >
+                          <Pause className="w-3.5 h-3.5 mr-1.5" /> Pause
+                        </APBButton>
+                        <APBButton 
+                          size="sm" 
+                          variant="destructive" 
+                          onClick={() => showConfirm({
+                            title: "End Round",
+                            description: `End Round ${round.roundNumber} now? Submissions will be locked immediately.`,
+                            confirmText: "END ROUND",
+                            destructive: true,
+                            action: () => endRound(round.id),
+                          })}
+                          className="font-mono text-xs"
+                        >
+                          <Square className="w-3.5 h-3.5 mr-1.5" /> End
+                        </APBButton>
+                      </>
+                    )}
+
+                    {/* Paused controls */}
+                    {round.status === "PAUSED" && (
+                      <>
+                        <APBButton 
+                          size="sm" 
+                          glow
+                          onClick={() => resumeRound(round.id)}
+                          className="font-mono text-xs"
+                        >
+                          <Play className="w-3.5 h-3.5 mr-1.5" /> Resume
+                        </APBButton>
+                        <APBButton 
+                          size="sm" 
+                          variant="destructive" 
+                          onClick={() => showConfirm({
+                            title: "End Round",
+                            description: `End Round ${round.roundNumber} now? Submissions will be locked.`,
+                            confirmText: "END ROUND",
+                            destructive: true,
+                            action: () => endRound(round.id),
+                          })}
+                          className="font-mono text-xs"
+                        >
+                          <Square className="w-3.5 h-3.5 mr-1.5" /> End
+                        </APBButton>
+                      </>
+                    )}
+
+                    {/* Closed/Reset controls */}
+                    {(round.status === "CLOSED" || round.status === "JUDGING" || round.status === "RESULTS" || round.status === "ENDED") && (
+                      <>
+                        <APBButton 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => showConfirm({
+                            title: "Reopen Round",
+                            description: `Reopen Round ${round.roundNumber} for 5 more minutes?`,
+                            confirmText: "REOPEN",
+                            destructive: false,
+                            action: () => reopenRound(round.id, 300),
+                          })}
+                          className="font-mono text-xs"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Reopen (5m)
+                        </APBButton>
+                        <APBButton 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => showConfirm({
+                            title: "Reset Round",
+                            description: `Reset Round ${round.roundNumber} to READY? Submission data is NOT deleted.`,
+                            confirmText: "RESET",
+                            destructive: true,
+                            action: () => resetRound(round.id),
+                          })}
+                          className="font-mono text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reset
+                        </APBButton>
+                      </>
+                    )}
+
+                    {/* Delete Round Button (Guarded) */}
+                    <div className="ml-auto">
+                      <APBButton
+                        size="sm"
+                        variant="outline"
+                        disabled={round.status === "LIVE"}
+                        onClick={() => showConfirm({
+                          title: "Delete Round",
+                          description: `Permanently delete Round ${round.roundNumber}: "${round.title}"? This round configuration will be completely removed.`,
+                          confirmText: "DELETE ROUND",
+                          destructive: true,
+                          action: () => deleteRound(round.id),
+                        })}
+                        className="border-red-500/40 text-red-400 hover:bg-red-500/20 disabled:opacity-30 font-mono text-xs"
+                        title={round.status === "LIVE" ? "End the round before deleting." : "Delete this round"}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+                      </APBButton>
+                    </div>
+                  </div>
+                </div>
 
               {round.challengeInstructions && (
                 <div className="border-t border-[var(--color-apb-surface-border)] pt-4">
@@ -393,7 +493,8 @@ export default function OrganizerRounds() {
                 </div>
               )}
             </APBCard>
-          ))}
+          );
+        })}
           {rounds.length === 0 && (
             <div className="col-span-full h-48 border border-dashed border-[var(--color-apb-surface-border)] rounded-lg flex items-center justify-center text-muted-foreground">
               No rounds created yet.

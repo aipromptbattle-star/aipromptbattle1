@@ -490,10 +490,8 @@ export default function OrganizerJudging() {
   const [judgesPerSub, setJudgesPerSub] = useState(1);
   const [autoAssigning, setAutoAssigning] = useState(false);
 
-  const closedRounds = rounds.filter(
-    (r) => r.status === "CLOSED" || r.status === "JUDGING" || r.status === "RESULTS"
-  );
-  const selectedRound = closedRounds.find((r) => r.id === selectedRoundId) ?? closedRounds[0] ?? null;
+  const availableRounds = rounds;
+  const selectedRound = availableRounds.find((r) => r.id === selectedRoundId) ?? availableRounds[0] ?? null;
   const activeRoundId = selectedRound?.id ?? null;
 
   const { submissions, loading: subsLoading } = useAllSubmissions("currentEvent", activeRoundId);
@@ -508,6 +506,7 @@ export default function OrganizerJudging() {
     return s.score !== undefined || hasSubScore;
   }).length;
   const totalSubmissions = submissions.length;
+  const remainingCount = Math.max(0, totalSubmissions - scoredCount);
 
   const handleAddJudgeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -595,18 +594,41 @@ export default function OrganizerJudging() {
         </div>
       </header>
 
+      {/* Section 13: Judging Overview Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+        <APBCard className="p-5 bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
+          <div className="text-xs uppercase text-muted-foreground font-bold">TOTAL SUBMISSIONS</div>
+          <div className="text-4xl font-black text-white mt-1">{totalSubmissions}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">Official received submissions</div>
+        </APBCard>
+
+        <APBCard className="p-5 bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
+          <div className="text-xs uppercase text-muted-foreground font-bold">JUDGED</div>
+          <div className="text-4xl font-black text-[var(--color-apb-cyan)] mt-1">{scoredCount}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">
+            {totalSubmissions > 0 ? `${Math.round((scoredCount / totalSubmissions) * 100)}% complete` : "0%"}
+          </div>
+        </APBCard>
+
+        <APBCard className="p-5 bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
+          <div className="text-xs uppercase text-muted-foreground font-bold">REMAINING</div>
+          <div className="text-4xl font-black text-amber-400 mt-1">{remainingCount}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">Awaiting judge evaluation</div>
+        </APBCard>
+      </div>
+
       {/* TAB 1: SUBMISSIONS & MULTI-JUDGE SCORING */}
       {activeTab === "SUBMISSIONS" && (
         <div className="space-y-6">
-          {closedRounds.length === 0 ? (
+          {availableRounds.length === 0 ? (
             <div className="h-48 border border-dashed border-[var(--color-apb-surface-border)] rounded-lg flex items-center justify-center text-muted-foreground font-mono">
-              No completed rounds available for evaluation.
+              No rounds configured yet.
             </div>
           ) : (
             <>
               {/* Round Selector Buttons */}
               <div className="flex flex-wrap gap-2">
-                {closedRounds.map((r) => (
+                {availableRounds.map((r) => (
                   <APBButton
                     key={r.id}
                     size="sm"

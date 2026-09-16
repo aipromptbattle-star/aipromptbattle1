@@ -1,6 +1,8 @@
 export type EventStatus = "DRAFT" | "LIVE" | "ENDED";
-export type RoundStatus = "DRAFT" | "READY" | "LIVE" | "PAUSED" | "CLOSED" | "JUDGING" | "RESULTS";
+export type RoundStatus = "DRAFT" | "READY" | "STARTING" | "LIVE" | "PAUSED" | "CLOSED" | "JUDGING" | "RESULTS" | "ENDED";
 export type ChallengeType = "TEXT" | "IMAGE" | "COMBINED";
+
+export type DisplayMode = "AUTOMATIC" | "LEADERBOARD" | "LIVE_ROUND" | "EVENT_STATUS" | "WAITING";
 
 export interface Event {
   eventName: string;
@@ -8,6 +10,9 @@ export interface Event {
   currentRoundId: string | null;
   totalRounds: number;
   resultsPublished?: boolean;
+  activeDisplayLayout?: number; // 1 to 10
+  displayOverride?: DisplayMode;
+  googleSheetsUrl?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -91,6 +96,8 @@ export interface Round {
   startedAt: number | null;
   endsAt: number | null;
   pausedRemainingSeconds: number | null;
+  countdownStartedAt?: number | null;
+  countdownEndsAt?: number | null;
   challengeType?: ChallengeType;
   challengeTitle?: string;
   challengeDescription?: string;

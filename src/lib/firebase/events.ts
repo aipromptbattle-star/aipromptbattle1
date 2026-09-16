@@ -62,11 +62,24 @@ export function useCurrentRound(roundId: string | null) {
 
 export async function startRound(roundId: string, durationSeconds: number) {
   const now = Date.now();
-  const endsAt = now + (durationSeconds * 1000);
+  const COUNTDOWN_MS = 5000;
+  const countdownEndsAt = now + COUNTDOWN_MS;
+  const roundEndsAt = countdownEndsAt + (durationSeconds * 1000);
+
+  let alreadyStartingOrLive = false;
 
   await runTransaction(db, async (transaction) => {
     const eventRef = doc(db, "events", EVENT_ID);
     const roundRef = doc(db, "rounds", roundId);
+    const roundSnap = await transaction.get(roundRef);
+    if (!roundSnap.exists()) throw new Error("Round not found.");
+
+    const roundData = roundSnap.data() as Round;
+    // Idempotency: Section 14: DO NOT START THE ROUND TWICE
+    if (roundData.status === "STARTING" || roundData.status === "LIVE") {
+      alreadyStartingOrLive = true;
+      return;
+    }
 
     transaction.update(eventRef, {
       currentRoundId: roundId,
@@ -75,15 +88,46 @@ export async function startRound(roundId: string, durationSeconds: number) {
     });
 
     transaction.update(roundRef, {
-      status: "LIVE",
-      startedAt: now,
-      endsAt: endsAt,
+      status: "STARTING",
+      countdownStartedAt: now,
+      countdownEndsAt: countdownEndsAt,
+      startedAt: countdownEndsAt,
+      endsAt: roundEndsAt,
       pausedRemainingSeconds: null,
       updatedAt: now
     });
   });
 
-  await logAudit("ROUND_STARTED", "ORGANIZER", { roundId });
+  if (alreadyStartingOrLive) {
+    console.warn("Round is already starting or live; ignoring duplicate start.");
+    return;
+  }
+
+  await logAudit("ROUND_STARTING", "ORGANIZER", { roundId, metadata: { countdownEndsAt } });
+}
+
+export async function finalizeRoundStart(roundId: string) {
+  let transitioned = false;
+  try {
+    await runTransaction(db, async (transaction) => {
+      const roundRef = doc(db, "rounds", roundId);
+      const roundSnap = await transaction.get(roundRef);
+      if (!roundSnap.exists()) return;
+      const roundData = roundSnap.data() as Round;
+      if (roundData.status === "STARTING") {
+        transaction.update(roundRef, {
+          status: "LIVE",
+          updatedAt: Date.now()
+        });
+        transitioned = true;
+      }
+    });
+    if (transitioned) {
+      await logAudit("ROUND_STARTED", "ORGANIZER", { roundId });
+    }
+  } catch (err) {
+    console.error("finalizeRoundStart error:", err);
+  }
 }
 
 export async function pauseRound(roundId: string) {
@@ -219,6 +263,8 @@ export async function resetRound(roundId: string) {
       startedAt: null,
       endsAt: null,
       pausedRemainingSeconds: null,
+      countdownStartedAt: null,
+      countdownEndsAt: null,
       updatedAt: now,
     });
   });
