@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { APBCard } from "@/components/apb/APBCard";
 import { StatCard } from "@/components/apb/StatCard";
@@ -63,6 +63,31 @@ export default function OrganizerDashboard() {
   const [selectedLaunchRoundId, setSelectedLaunchRoundId] = useState<string>("");
   const [customDuration, setCustomDuration] = useState<number>(300);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Real-time clock ticker for authoritative constraint progression
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isProgressive = currentRound?.templateType === "PROGRESSIVE_CONSTRAINT" || currentRound?.roundNumber === 2;
+
+  // Authoritative stage calculation
+  const elapsedSeconds = currentRound?.startedAt && currentRound?.status === "LIVE"
+    ? Math.max(0, Math.floor((now - currentRound.startedAt) / 1000))
+    : (currentRound?.pausedRemainingSeconds ? Math.max(0, (currentRound.durationSeconds || 1200) - currentRound.pausedRemainingSeconds) : 0);
+
+  const currentStageNum = Math.min(5, Math.floor(elapsedSeconds / 240) + 1);
+  const secondsIntoStage = elapsedSeconds % 240;
+  const secondsUntilNextStage = currentStageNum < 5 ? 240 - secondsIntoStage : 0;
+  const nextStageMins = Math.floor(secondsUntilNextStage / 60);
+  const nextStageSecs = secondsUntilNextStage % 60;
+
+  // Connected telemetry
+  const connectedTeamIds = new Set(sessions.map(s => s.teamId));
+  const connectedTeamsCount = connectedTeamIds.size;
+  const submissionPercentage = teams.length > 0 ? Math.round((submissions.length / teams.length) * 100) : 0;
 
   // Sessions Management Modal State
   const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
@@ -261,11 +286,22 @@ export default function OrganizerDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-apb-surface-border)] pb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-3xl font-mono font-bold uppercase tracking-wider text-white">Command Center</h2>
-            <StatusBadge status={eventState.status} />
+            <h2 className="text-2xl sm:text-3xl font-mono font-bold uppercase tracking-wider text-white flex items-center gap-3">
+              <span>AI PROMPT BATTLE — LIVE CONTROL</span>
+            </h2>
+            {currentRound?.status === "LIVE" ? (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                LIVE
+              </span>
+            ) : (
+              <StatusBadge status={eventState.status} />
+            )}
           </div>
-          <p className="text-muted-foreground text-sm">
-            Live operational control and real-time battle telemetrics.
+          <p className="text-muted-foreground text-sm font-mono">
+            {currentRound 
+              ? `Active: Round ${currentRound.roundNumber} • ${currentRound.title}`
+              : "Command Center • Operational Battle Telemetrics"}
           </p>
         </div>
 
@@ -292,7 +328,7 @@ export default function OrganizerDashboard() {
             onClick={() => setSessionsModalOpen(true)}
             className="font-mono text-xs text-red-400 border-red-500/40 hover:bg-red-500/10"
           >
-            <ShieldAlert className="w-3.5 h-3.5 mr-1.5" /> Kill Sessions Control ({sessions.length})
+            <ShieldAlert className="w-3.5 h-3.5 mr-1.5" /> Sessions Control ({sessions.length})
           </APBButton>
         </div>
       </div>
@@ -313,18 +349,116 @@ export default function OrganizerDashboard() {
       )}
 
       {/* Primary Telemetry Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Event Status" value={eventState.status} />
-        <StatCard label="Active Round" value={currentRound ? `Round ${currentRound.roundNumber}` : "Idle"} />
-        <StatCard label="Submissions Received" value={`${submissions.length} / ${teams.length}`} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <APBCard className="p-5 border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">TEAMS REGISTERED</div>
+          <div className="text-3xl font-mono font-bold text-white">{teams.length}</div>
+          <div className="text-[11px] font-mono text-muted-foreground mt-1">Official battle teams</div>
+        </APBCard>
+
+        <APBCard className="p-5 border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">CONNECTED TEAMS</div>
+          <div className="text-3xl font-mono font-bold text-[var(--color-apb-cyan)]">
+            {connectedTeamsCount} <span className="text-sm font-normal text-muted-foreground">/ {teams.length}</span>
+          </div>
+          <div className="text-[11px] font-mono text-muted-foreground mt-1">{sessions.length} active workstation devices</div>
+        </APBCard>
+
+        <APBCard className="p-5 border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">SUBMISSIONS RECEIVED</div>
+          <div className="text-3xl font-mono font-bold text-emerald-400">
+            {submissions.length} <span className="text-sm font-normal text-muted-foreground">/ {teams.length}</span>
+          </div>
+          <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div 
+              className="bg-emerald-500 h-full transition-all duration-500" 
+              style={{ width: `${submissionPercentage}%` }} 
+            />
+          </div>
+        </APBCard>
+
         <div 
           onClick={() => setSessionsModalOpen(true)} 
           className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
-          title="Click to open Sessions Control modal"
         >
-          <StatCard label="Connected Devices (Kill)" value={`${sessions.length} Active`} />
+          <APBCard className="p-5 border-red-500/20 bg-red-950/10 hover:border-red-500/40">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-red-400 mb-1 flex items-center justify-between">
+              <span>ACTIVE SESSIONS</span>
+              <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+            </div>
+            <div className="text-3xl font-mono font-bold text-red-400">{sessions.length} Active</div>
+            <div className="text-[11px] font-mono text-red-300/70 mt-1">Manage & kill sessions ↗</div>
+          </APBCard>
         </div>
       </div>
+
+      {/* Progressive Constraint Real-time HUD (Round 2) */}
+      {isProgressive && (currentRound?.status === "LIVE" || currentRound?.status === "PAUSED") && (
+        <APBCard className="p-6 border-[var(--color-apb-purple)]/40 bg-gradient-to-r from-[var(--color-apb-purple)]/10 via-[var(--color-apb-surface)] to-[var(--color-apb-cyan)]/10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--color-apb-surface-border)]">
+            <div className="space-y-1">
+              <span className="text-xs font-mono uppercase tracking-widest text-[var(--color-apb-purple)] font-bold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[var(--color-apb-purple)] animate-ping" />
+                ROUND 2 PROGRESSIVE CONSTRAINT ENGINE
+              </span>
+              <div className="text-2xl font-mono font-bold text-white flex items-center gap-3">
+                <span>STAGE 0{currentStageNum} / 05</span>
+                <span className="text-sm font-normal text-muted-foreground">
+                  (Elapsed: {Math.floor(elapsedSeconds / 60)}m {elapsedSeconds % 60}s)
+                </span>
+              </div>
+            </div>
+
+            {currentStageNum < 5 ? (
+              <div className="p-3 rounded-xl bg-black/60 border border-[var(--color-apb-purple)]/30 text-right">
+                <div className="text-[10px] font-mono uppercase text-muted-foreground">Next Constraint Reveals In</div>
+                <div className="text-2xl font-mono font-bold text-[var(--color-apb-cyan)]">
+                  {String(nextStageMins).padStart(2, "0")}:{String(nextStageSecs).padStart(2, "0")}
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-black/60 border border-emerald-500/30 text-right">
+                <div className="text-[10px] font-mono uppercase text-emerald-400 font-bold">FINAL STAGE ACTIVE</div>
+                <div className="text-xs font-mono text-muted-foreground">Auto-freeze on round completion</div>
+              </div>
+            )}
+          </div>
+
+          {/* Stage Progress Bar (5 stages) */}
+          <div className="grid grid-cols-5 gap-2 pt-4">
+            {[1, 2, 3, 4, 5].map((st) => {
+              const isActive = st === currentStageNum;
+              const isPast = st < currentStageNum;
+              const stageSubmittedCount = submissions.filter(s => 
+                (s.progressiveStageSubmissions && s.progressiveStageSubmissions.some(rec => rec.stageNumber === st)) ||
+                (s.stageReached && s.stageReached >= st)
+              ).length;
+
+              return (
+                <div 
+                  key={st} 
+                  className={`p-3 rounded-lg border font-mono transition-all ${
+                    isActive 
+                      ? "bg-[var(--color-apb-purple)]/20 border-[var(--color-apb-purple)] text-white shadow-lg shadow-purple-900/30" 
+                      : isPast 
+                      ? "bg-slate-900/60 border-slate-700 text-slate-300"
+                      : "bg-black/30 border-slate-800 text-slate-600"
+                  }`}
+                >
+                  <div className="text-[10px] uppercase font-bold flex items-center justify-between">
+                    <span>STAGE {st}</span>
+                    {isPast && <span className="text-emerald-400">✓</span>}
+                    {isActive && <span className="text-[var(--color-apb-purple)]">LIVE</span>}
+                  </div>
+                  <div className="text-base font-bold mt-1">
+                    {stageSubmittedCount} <span className="text-[10px] font-normal text-muted-foreground">Submissions</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </APBCard>
+      )}
 
       {/* Main Control Deck */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

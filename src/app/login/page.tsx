@@ -99,48 +99,86 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[var(--color-apb-surface)] via-background to-background" />
-      
-      <div className="z-10 w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 
-            className="text-4xl font-mono font-bold tracking-tighter uppercase text-white mb-2 cursor-default select-none"
+    <div className="min-h-screen bg-[#07080b] flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
+      {/* Background Subtle Gradient & Grid Accent */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,240,255,0.04)_0,_transparent_70%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
+
+      <div className="z-10 w-full max-w-md space-y-6 text-center">
+        {/* Header Branding */}
+        <div className="space-y-1.5 cursor-default">
+          <span className="text-xs font-mono font-bold tracking-[0.3em] text-[var(--color-apb-cyan)] uppercase block">
+            AI
+          </span>
+          <h1
+            className="text-4xl sm:text-5xl font-mono font-black tracking-tight uppercase text-white drop-shadow-[0_0_25px_rgba(0,240,255,0.25)]"
             onDoubleClick={() => setShowOrganizerModal(true)}
+            title="AI Prompt Battle Access Terminal"
           >
-            AI Prompt Battle
+            PROMPT BATTLE
           </h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-sm">
-            Access Terminal
+          <p className="text-xs font-mono tracking-[0.25em] text-slate-400 uppercase pt-1">
+            THINK. PROMPT. CREATE.
           </p>
         </div>
 
-        <APBCard className="p-6">
+        {/* Thin Divider Line */}
+        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-[var(--color-apb-surface-border)] to-transparent" />
+
+        {/* Terminal Login Card */}
+        <APBCard className="p-6 sm:p-8 space-y-6 bg-[var(--color-apb-surface)]/95 border-[var(--color-apb-surface-border)] shadow-2xl relative">
+          <div className="space-y-1">
+            <span className="text-xs font-mono font-bold tracking-widest text-slate-300 uppercase">
+              ENTER THE BATTLE
+            </span>
+          </div>
+
           {error && (
-            <Alert variant="destructive" className="mb-6">
+            <Alert variant="destructive" className="text-left py-2.5">
               <Terminal className="h-4 w-4" />
-              <AlertTitle>Access Denied</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertTitle className="text-xs font-mono">Access Denied</AlertTitle>
+              <AlertDescription className="text-xs font-mono">{error}</AlertDescription>
             </Alert>
           )}
 
-          <form onSubmit={handleParticipantLogin} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="teamId" className="text-muted-foreground uppercase tracking-wider text-xs">Team ID</Label>
+          <form onSubmit={handleParticipantLogin} className="space-y-5">
+            <div className="space-y-2 text-left">
+              <Label htmlFor="teamId" className="text-muted-foreground uppercase tracking-widest text-[10px] font-mono block text-center">
+                TEAM ID
+              </Label>
               <Input
                 id="teamId"
-                placeholder="e.g. APB-001"
+                placeholder="APB-____"
                 value={teamId}
                 onChange={(e) => setTeamId(e.target.value)}
-                className="font-mono text-lg h-12 uppercase text-center"
+                className="font-mono text-xl h-14 uppercase text-center tracking-widest bg-black/50 border-[var(--color-apb-surface-border)] text-[var(--color-apb-cyan)] placeholder:text-slate-600 focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)]"
                 disabled={loading}
+                autoFocus
               />
             </div>
-            <APBButton glow type="submit" className="w-full h-12 text-lg" disabled={loading}>
-              {loading ? "Connecting..." : "Enter Battle"}
+
+            <APBButton glow type="submit" className="w-full h-12 text-sm font-mono tracking-widest uppercase" disabled={loading}>
+              {loading ? "AUTHENTICATING..." : "[ ENTER EVENT ]"}
             </APBButton>
           </form>
         </APBCard>
+
+        {/* Thin Divider Line */}
+        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-[var(--color-apb-surface-border)] to-transparent" />
+
+        {/* Event Location & System Ready Indicator */}
+        <div className="space-y-1.5 font-mono text-xs text-muted-foreground">
+          <div className="tracking-widest uppercase font-bold text-slate-300">
+            30 OCTOBER 2026
+          </div>
+          <div className="tracking-wider uppercase text-[11px] text-slate-400">
+            SJBIT • BENGALURU
+          </div>
+          <div className="pt-2 flex items-center justify-center gap-2 text-emerald-400 text-[11px] tracking-widest uppercase font-semibold">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>EVENT SYSTEM READY</span>
+          </div>
+        </div>
       </div>
 
       {/* Hidden Organizer Modal */}

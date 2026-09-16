@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmationDialog } from "@/components/apb/ConfirmationDialog";
 import { EditRoundDialog } from "@/components/apb/EditRoundDialog";
+import { RoundTemplateBuilder } from "@/components/apb/RoundTemplateBuilder";
+import { ParticipantPreviewModal } from "@/components/apb/ParticipantPreviewModal";
 import { useRounds, createRound } from "@/lib/firebase/rounds";
 import { startRound, pauseRound, resumeRound, endRound, extendTime, reopenRound, resetRound } from "@/lib/firebase/events";
 import { Round } from "@/lib/firebase/schema";
-import { Loader2, Plus, Play, Pause, Square, TimerReset, Edit, RotateCcw, RefreshCw, Clock } from "lucide-react";
+import { Loader2, Plus, Play, Pause, Square, TimerReset, Edit, RotateCcw, RefreshCw, Clock, Sparkles, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +33,8 @@ type ConfirmAction = {
 export default function OrganizerRounds() {
   const { rounds, loading } = useRounds();
   const [open, setOpen] = useState(false);
+  const [templateBuilderOpen, setTemplateBuilderOpen] = useState(false);
+  const [previewRound, setPreviewRound] = useState<Round | null>(null);
   const [creating, setCreating] = useState(false);
 
   // Edit round state
@@ -89,6 +93,29 @@ export default function OrganizerRounds() {
     }
   };
 
+  const handleSaveFromTemplate = async (roundData: Partial<Round>) => {
+    try {
+      await createRound({
+        roundNumber: roundData.roundNumber || rounds.length + 1,
+        title: roundData.title || `Round ${roundData.roundNumber || rounds.length + 1}`,
+        description: roundData.description || "",
+        durationSeconds: roundData.durationSeconds || 1200,
+        challengeType: roundData.challengeType || "TEXT",
+        challengeTitle: roundData.challengeTitle || roundData.title || "",
+        challengeDescription: roundData.challengeDescription || roundData.description || "",
+        challengeInstructions: roundData.challengeInstructions || "",
+        referenceMaterial: roundData.referenceMaterial || "",
+        constraints: roundData.constraints || [],
+        templateType: roundData.templateType,
+        quizQuestions: roundData.quizQuestions,
+        progressiveStages: roundData.progressiveStages,
+      });
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to create round from template.");
+      throw err;
+    }
+  };
+
   const showConfirm = (action: ConfirmAction) => {
     setConfirmAction(action);
     setConfirmOpen(true);
@@ -118,13 +145,20 @@ export default function OrganizerRounds() {
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-mono font-bold uppercase tracking-wider text-white">Round Management</h2>
-          <p className="text-muted-foreground">Configure challenges and event flow.</p>
+          <p className="text-muted-foreground">Configure challenges, select templates, and preview participant experience.</p>
         </div>
         
-        <APBButton glow onClick={() => setOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Round
-        </APBButton>
+        <div className="flex items-center gap-3">
+          <APBButton glow onClick={() => setTemplateBuilderOpen(true)} className="bg-gradient-to-r from-[var(--color-apb-cyan)]/20 to-[var(--color-apb-purple)]/20 border border-[var(--color-apb-cyan)]/50">
+            <Sparkles className="w-4 h-4 mr-2 text-[var(--color-apb-cyan)]" />
+            Create from Template
+          </APBButton>
+
+          <APBButton variant="outline" onClick={() => setOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Custom Round
+          </APBButton>
+        </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-[425px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-white">
@@ -188,11 +222,21 @@ export default function OrganizerRounds() {
             <APBCard key={round.id} className="p-6 space-y-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="text-[var(--color-apb-cyan)] font-mono text-sm tracking-widest uppercase">Round {round.roundNumber}</span>
                     {round.challengeType && (
                       <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-white border border-white/20">
                         {round.challengeType}
+                      </span>
+                    )}
+                    {(round.templateType === "QUIZ" || round.roundNumber === 1) && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-apb-cyan)]/15 text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30">
+                        🧠 QUIZ (20Q)
+                      </span>
+                    )}
+                    {(round.templateType === "PROGRESSIVE_CONSTRAINT" || round.roundNumber === 2) && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-apb-purple)]/15 text-[var(--color-apb-purple)] border border-[var(--color-apb-purple)]/30">
+                        ⚡ PROGRESSIVE (5 STAGES)
                       </span>
                     )}
                   </div>
@@ -206,6 +250,9 @@ export default function OrganizerRounds() {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <APBButton size="sm" variant="ghost" onClick={() => setPreviewRound(round)} className="text-white/80 hover:text-white border border-white/10">
+                  <Eye className="w-4 h-4 mr-1.5 text-[var(--color-apb-cyan)]" /> Preview View
+                </APBButton>
                 {round.status === "READY" && (
                   <>
                     <APBButton size="sm" onClick={() => showConfirm({
@@ -350,6 +397,19 @@ export default function OrganizerRounds() {
         confirmText={confirmAction?.confirmText ?? "CONFIRM"}
         destructive={confirmAction?.destructive ?? false}
         onConfirm={handleConfirm}
+      />
+
+      <RoundTemplateBuilder
+        open={templateBuilderOpen}
+        onOpenChange={setTemplateBuilderOpen}
+        onSaveRound={handleSaveFromTemplate}
+        nextRoundNumber={rounds.length + 1}
+      />
+
+      <ParticipantPreviewModal
+        open={!!previewRound}
+        onClose={() => setPreviewRound(null)}
+        round={previewRound || {}}
       />
     </div>
   );

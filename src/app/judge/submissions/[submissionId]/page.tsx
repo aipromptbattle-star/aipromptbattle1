@@ -232,6 +232,101 @@ export default function JudgeSubmissionWorkspace() {
             </APBCard>
           )}
 
+          {/* Quiz Score Card (if Round 1 Quiz submission) */}
+          {submission.quizScore !== undefined && (
+            <APBCard className="p-5 space-y-3 border-[var(--color-apb-cyan)]/30 bg-[var(--color-apb-cyan)]/5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase font-bold text-[var(--color-apb-cyan)] flex items-center gap-2">
+                  <Star className="w-4 h-4" /> Round 1 Quiz Performance
+                </span>
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-apb-cyan)]/20 text-[var(--color-apb-cyan)]">
+                  {submission.quizScore} / 20 Points
+                </span>
+              </div>
+              <p className="text-xs text-white/80 font-mono">
+                Team completed automated 20-question prompt engineering quiz.
+              </p>
+            </APBCard>
+          )}
+
+          {/* Progressive Constraint Stage Breakdown (if Round 2 Progressive submission) */}
+          {submission.progressiveStageSubmissions && submission.progressiveStageSubmissions.length > 0 && (
+            <APBCard className="p-5 space-y-4 border-[var(--color-apb-purple)]/30 bg-[var(--color-apb-purple)]/5">
+              <div className="flex items-center justify-between border-b border-[var(--color-apb-surface-border)] pb-2">
+                <span className="text-xs font-mono uppercase font-bold text-[var(--color-apb-purple)] flex items-center gap-2">
+                  <FileText className="w-4 h-4" /> 5-Stage Evolution Trail
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  Stages Completed: {submission.progressiveStageSubmissions.length} / 5
+                </span>
+              </div>
+              <div className="space-y-3">
+                {submission.progressiveStageSubmissions.map((stage) => (
+                  <div key={stage.stageNumber} className="p-3 rounded-lg bg-black/50 border border-[var(--color-apb-surface-border)] space-y-2">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-full bg-[var(--color-apb-purple)]/20 text-[var(--color-apb-purple)] flex items-center justify-center text-[10px]">
+                          {stage.stageNumber}
+                        </span>
+                        Stage {stage.stageNumber} Draft
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded ${
+                        stage.isAutoSubmitted 
+                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/30" 
+                          : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                      }`}>
+                        {stage.isAutoSubmitted ? "Auto-Frozen (Boundary)" : "Manual Submitted"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/90 font-mono whitespace-pre-wrap bg-black/40 p-2.5 rounded border border-white/5">
+                      {stage.prompt || "(No text recorded for this stage)"}
+                    </p>
+                    {stage.ruleResults && stage.ruleResults.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {stage.ruleResults.map((r, i) => (
+                          <span key={i} className={`text-[10px] font-mono px-2 py-0.5 rounded flex items-center gap-1 ${
+                            r.passed 
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
+                              : "bg-red-500/10 text-red-400 border border-red-500/20"
+                          }`}>
+                            <span>{r.passed ? "✓" : "✗"}</span>
+                            <span>{r.feedback}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </APBCard>
+          )}
+
+          {/* Automated Rule Check Results Summary */}
+          {submission.ruleResults && submission.ruleResults.length > 0 && (
+            <APBCard className="p-4 space-y-3 bg-[var(--color-apb-surface)]/60">
+              <div className="flex items-center justify-between border-b border-[var(--color-apb-surface-border)] pb-2">
+                <span className="text-xs font-mono uppercase font-bold text-white flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Automated Rule Verification
+                </span>
+                <span className="text-xs font-mono text-emerald-400 font-bold">
+                  {submission.ruleResults.filter(r => r.passed).length} / {submission.ruleResults.length} Checks Passed
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {submission.ruleResults.map((rule, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 rounded bg-black/40 text-xs font-mono">
+                    <span className="text-white/80">{rule.feedback}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                      rule.passed ? "bg-emerald-500/20 text-emerald-300" : "bg-red-500/20 text-red-300"
+                    }`}>
+                      {rule.passed ? "PASSED" : "FAILED"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </APBCard>
+          )}
+
           {/* Final Prompt / Response */}
           <APBCard className="p-5 space-y-3">
             <div className="flex items-center justify-between border-b border-[var(--color-apb-surface-border)] pb-2">

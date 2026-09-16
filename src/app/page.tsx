@@ -31,25 +31,35 @@ export default function LandingPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[var(--color-apb-surface)] via-background to-background" />
+    <div className="min-h-screen bg-[#07080b] flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,240,255,0.05)_0,_transparent_70%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
 
-      <div className="z-10 w-full max-w-2xl text-center space-y-12">
-        <div className="space-y-4">
-          <h1 className="text-5xl md:text-7xl font-mono font-bold tracking-tighter uppercase text-white drop-shadow-[0_0_15px_rgba(0,240,255,0.3)]">
-            AI Prompt Battle
+      <div className="z-10 w-full max-w-2xl text-center space-y-8">
+        <div className="space-y-2">
+          <span className="text-xs font-mono font-bold tracking-[0.3em] text-[var(--color-apb-cyan)] uppercase block">
+            LIVE CONDUCTION PLATFORM
+          </span>
+          <h1 className="text-5xl md:text-7xl font-mono font-black tracking-tight uppercase text-white drop-shadow-[0_0_30px_rgba(0,240,255,0.25)]">
+            AI PROMPT BATTLE
           </h1>
-          <p className="text-xl text-muted-foreground uppercase tracking-widest">
-            Event Management System
+          <p className="text-sm font-mono text-slate-400 uppercase tracking-[0.25em] pt-1">
+            THINK. PROMPT. CREATE.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+        <div className="h-[1px] w-48 mx-auto bg-gradient-to-r from-transparent via-[var(--color-apb-cyan)]/50 to-transparent" />
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
           <Link href="/login">
-            <APBButton glow className="h-14 px-8 text-lg w-full sm:w-auto">
-              Join as Participant
+            <APBButton glow className="h-13 px-8 text-sm font-mono tracking-widest uppercase w-full sm:w-auto">
+              [ ENTER THE BATTLE ]
             </APBButton>
           </Link>
+        </div>
+
+        <div className="pt-8 text-xs font-mono text-muted-foreground uppercase tracking-widest">
+          SJBIT • 30 OCTOBER 2026 • BENGALURU
         </div>
       </div>
     </div>

@@ -16,7 +16,9 @@ import { CreativeWorkspace } from "@/components/apb/CreativeWorkspace";
 import { MemberRoleSelector } from "@/components/apb/MemberRoleSelector";
 import { SubmissionReviewDialog } from "@/components/apb/SubmissionReviewDialog";
 import { SubmissionSuccessView } from "@/components/apb/SubmissionSuccessView";
-import { Loader2, Send, Lock, PauseCircle, WifiOff } from "lucide-react";
+import { QuizWorkspace } from "@/components/apb/QuizWorkspace";
+import { ProgressiveConstraintWorkspace } from "@/components/apb/ProgressiveConstraintWorkspace";
+import { Loader2, Send, Lock, PauseCircle, WifiOff, Users, Clock, Sparkles } from "lucide-react";
 
 export default function ParticipantDashboard() {
   const { teamId, eventId, teamData, memberRole, setMemberRole, loading: sessionLoading, leaveTeam } = useTeamSession();
@@ -27,6 +29,30 @@ export default function ParticipantDashboard() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+
+  // Security UI deterrents (§31): discourage right-click and common inspect shortcuts on participant workstations
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "F12" ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "I" || e.key === "i" || e.key === "J" || e.key === "j")) ||
+        ((e.ctrlKey || e.metaKey) && (e.key === "u" || e.key === "U"))
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("contextmenu", handleContextMenu);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -92,7 +118,7 @@ export default function ParticipantDashboard() {
 
   if (!isEligibleForRound) {
     return (
-      <div className="min-h-screen bg-background flex flex-col font-sans">
+      <div className="min-h-screen bg-[#07080b] flex flex-col font-sans select-none">
         <header className="border-b border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-mono font-bold tracking-widest uppercase text-white">
@@ -114,12 +140,12 @@ export default function ParticipantDashboard() {
         </header>
 
         <main className="flex-1 p-4 md:p-8 flex items-center justify-center">
-          <APBCard className="max-w-2xl w-full p-8 text-center space-y-6 border-slate-700 bg-slate-900/50 backdrop-blur-md">
-            <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 mx-auto">
+          <APBCard className="max-w-2xl w-full p-8 text-center space-y-6 border-slate-800 bg-slate-950/70 backdrop-blur-md">
+            <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mx-auto">
               <Lock className="w-8 h-8" />
             </div>
             <div className="space-y-2">
-              <span className="text-xs font-mono font-bold uppercase tracking-widest text-slate-400 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
+              <span className="text-xs font-mono font-bold uppercase tracking-widest text-slate-400 bg-slate-900 px-4 py-1.5 rounded-full border border-slate-800">
                 Round {currentRound.roundNumber} In Progress
               </span>
               <h2 className="text-2xl sm:text-3xl font-mono text-white uppercase tracking-wider pt-2">
@@ -139,51 +165,84 @@ export default function ParticipantDashboard() {
     );
   }
 
-  // State 1: Waiting Room / Round Ready
+  // State 1: Participant Waiting Room (§4 Design)
   if (!currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT") {
+    const roundNumberFormatted = currentRound ? `ROUND ${currentRound.roundNumber.toString().padStart(2, "0")}` : "ROUND 01";
+
     return (
-      <div className="min-h-screen bg-background flex flex-col font-sans">
-        <header className="border-b border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)] px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-mono font-bold tracking-widest uppercase text-white">
-              AI Prompt Battle
-            </h1>
-            <StatusBadge status={currentRound?.status || "READY"} className="hidden sm:inline-flex" />
+      <div className="min-h-screen bg-[#07080b] flex flex-col font-sans select-none relative overflow-hidden">
+        {/* Subtle background lighting accent */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,240,255,0.03)_0,_transparent_70%)]" />
+
+        <header className="border-b border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]/90 backdrop-blur px-6 py-4 flex items-center justify-between z-10">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs font-bold tracking-[0.25em] text-[var(--color-apb-cyan)] uppercase">
+              AI PROMPT BATTLE
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <div className="text-sm font-mono text-white font-bold">{teamId}</div>
-              <div className="text-xs text-muted-foreground uppercase">
+              <div className="text-sm font-mono text-white font-bold tracking-wider">{teamId}</div>
+              <div className="text-[11px] text-muted-foreground uppercase font-mono">
                 {teamData?.displayName || "Participant"}
               </div>
             </div>
-            <APBButton variant="ghost" size="sm" onClick={handleLogout}>
+            <APBButton variant="ghost" size="sm" onClick={handleLogout} className="text-xs font-mono uppercase">
               Leave
             </APBButton>
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 flex items-center justify-center">
-          <APBCard className="max-w-2xl w-full p-8 text-center space-y-6">
-            <div className="inline-flex items-center justify-center p-4 rounded-full bg-[var(--color-apb-surface-border)]/50 mb-2 animate-pulse">
-              <Loader2 className="w-8 h-8 text-[var(--color-apb-cyan)] animate-spin" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-mono text-[var(--color-apb-cyan)] uppercase tracking-wider">
-              {currentRound ? `ROUND ${currentRound.roundNumber} IS READY` : "WAITING FOR ORGANIZER"}
-            </h2>
-            <p className="text-white text-lg font-semibold">
-              {currentRound ? currentRound.title : "The battle will commence shortly."}
-            </p>
-            <p className="text-sm text-slate-400 max-w-md mx-auto">
-              Please remain on this screen. When the organizer initiates Round {currentRound ? currentRound.roundNumber : 1}, your competition workspace will unlock automatically.
-            </p>
-            {currentRound?.qualifiedTeams && currentRound.qualifiedTeams.length > 0 && (
+        <main className="flex-1 p-4 md:p-8 flex items-center justify-center z-10">
+          <APBCard className="max-w-xl w-full p-8 sm:p-12 text-center space-y-8 bg-[var(--color-apb-surface)]/95 border-[var(--color-apb-surface-border)] shadow-2xl">
+            {/* Round Title & Status */}
+            <div className="space-y-2">
+              <span className="text-xs font-mono font-bold uppercase tracking-[0.25em] text-[var(--color-apb-cyan)]">
+                AI PROMPT BATTLE
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-mono font-black text-white tracking-wider">
+                {roundNumberFormatted}
+              </h2>
               <div className="pt-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-apb-cyan)]/10 border border-[var(--color-apb-cyan)]/30 text-[var(--color-apb-cyan)] font-mono text-xs font-bold uppercase tracking-wider">
-                  {currentRound.qualifiedTeams.length} Teams Entered
+                <span className="inline-flex items-center px-4 py-1 rounded-full bg-[var(--color-apb-cyan)]/15 border border-[var(--color-apb-cyan)]/40 text-[var(--color-apb-cyan)] font-mono text-xs font-extrabold tracking-widest uppercase animate-pulse">
+                  READY
                 </span>
               </div>
-            )}
+            </div>
+
+            {/* Team Identity */}
+            <div className="p-4 rounded-xl bg-black/50 border border-[var(--color-apb-surface-border)] space-y-1">
+              <div className="text-lg sm:text-xl font-mono font-bold text-white tracking-wider">
+                TEAM {teamId}
+              </div>
+              <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide">
+                {teamData?.displayName || "Team Station"}
+              </div>
+            </div>
+
+            {/* Connected Indicators (§4) */}
+            <div className="space-y-2">
+              <span className="text-xs font-mono text-slate-300 uppercase tracking-widest block">
+                TEAM MEMBERS CONNECTED
+              </span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/60" />
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/60" />
+              </div>
+            </div>
+
+            {/* Waiting for Organizer Notice */}
+            <div className="space-y-2 pt-2 border-t border-[var(--color-apb-surface-border)]">
+              <div className="text-xs font-mono uppercase tracking-widest text-amber-400 font-bold flex items-center justify-center gap-2">
+                <Clock className="w-4 h-4 animate-spin" />
+                <span>WAITING FOR ORGANIZER</span>
+              </div>
+              <p className="text-xs font-mono text-slate-400 max-w-sm mx-auto">
+                The challenge will appear when the round begins.
+              </p>
+            </div>
           </APBCard>
         </main>
       </div>
@@ -260,8 +319,62 @@ export default function ParticipantDashboard() {
   const currentFileName = draft?.member2Data?.fileName || "";
   const currentCreativeText = draft?.member2Data?.text || "";
 
+  // Specialized Round 1: Quiz Engine
+  if (currentRound.templateType === "QUIZ" || currentRound.roundNumber === 1) {
+    return (
+      <div className="min-h-screen bg-[#07080b] flex flex-col font-sans select-none">
+        <TeamWorkspaceHeader
+          teamId={teamId}
+          teamDisplayName={teamData?.displayName}
+          round={currentRound}
+          memberRole={memberRole}
+          saveStatus={saveStatus}
+          onSwitchRole={() => setRoleModalOpen(true)}
+          onLeave={handleLogout}
+        />
+        <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
+          <QuizWorkspace
+            round={currentRound}
+            teamId={teamId}
+            teamDisplayName={teamData?.displayName}
+            eventId={eventId || "currentEvent"}
+            initialAnswers={draft?.quizAnswers || {}}
+            existingSubmission={submission}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // Specialized Round 2: Progressive Constraint Engine
+  if (currentRound.templateType === "PROGRESSIVE_CONSTRAINT" || currentRound.roundNumber === 2) {
+    return (
+      <div className="min-h-screen bg-[#07080b] flex flex-col font-sans select-none">
+        <TeamWorkspaceHeader
+          teamId={teamId}
+          teamDisplayName={teamData?.displayName}
+          round={currentRound}
+          memberRole={memberRole}
+          saveStatus={saveStatus}
+          onSwitchRole={() => setRoleModalOpen(true)}
+          onLeave={handleLogout}
+        />
+        <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
+          <ProgressiveConstraintWorkspace
+            round={currentRound}
+            teamId={teamId}
+            teamDisplayName={teamData?.displayName}
+            eventId={eventId || "currentEvent"}
+            memberRole={memberRole}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // Standard Universal Workspace (Text / Image / Creative)
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
+    <div className="min-h-screen bg-[#07080b] flex flex-col font-sans select-none">
       {/* Header */}
       <TeamWorkspaceHeader
         teamId={teamId}

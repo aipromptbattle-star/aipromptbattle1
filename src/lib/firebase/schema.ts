@@ -45,6 +45,41 @@ export const DEFAULT_SCORING_CRITERIA: ScoringCriterion[] = [
   { id: "adherence", name: "Adherence", description: "Strict following of round instructions and constraints", maxScore: 100, weight: 1 },
 ];
 
+export type RoundTemplateType = "STANDARD" | "QUIZ" | "PROGRESSIVE_CONSTRAINT";
+
+export interface QuizQuestion {
+  id: number;
+  question: string;
+  options: [string, string, string]; // exactly 3 options A, B, C
+  correctAnswer?: "A" | "B" | "C"; // privileged: stored in round doc, omitted from participant view
+  points: number;
+}
+
+export type EvaluationRuleType = 
+  | "MIN_WORDS" 
+  | "MAX_WORDS" 
+  | "EXACT_WORDS" 
+  | "REQUIRED_PHRASE" 
+  | "FORBIDDEN_PHRASE" 
+  | "ITEM_COUNT" 
+  | "CHAR_COUNT";
+
+export interface EvaluationRule {
+  id: string;
+  rule: EvaluationRuleType;
+  expectedValue: string | number;
+  points: number;
+  description?: string;
+}
+
+export interface ProgressiveConstraintStage {
+  stageNumber: number; // 1 to 5
+  stageName: string; // e.g. "Initial Statement", "Constraint 01"
+  unlockMinute: number; // 0, 4, 8, 12, 16
+  statement: string;
+  evaluationRules?: EvaluationRule[];
+}
+
 export interface Round {
   id: string; // Firestore document ID
   roundNumber: number;
@@ -67,6 +102,11 @@ export interface Round {
   scoringCriteria?: ScoringCriterion[];
   createdAt: number;
   updatedAt: number;
+  // Template extensions:
+  templateType?: RoundTemplateType;
+  quizQuestions?: QuizQuestion[];
+  initialStatement?: string;
+  progressiveStages?: ProgressiveConstraintStage[];
 }
 
 export interface Session {
@@ -93,6 +133,16 @@ export interface Draft {
   updatedBy?: string;
   updatedAt: number;
   version: number;
+  // Quiz Draft:
+  quizAnswers?: Record<number, "A" | "B" | "C">;
+  // Progressive Constraint Stage Drafts:
+  currentStage?: number;
+  stageDrafts?: Record<number, {
+    prompt: string;
+    outputText?: string;
+    outputImageUrl?: string;
+    updatedAt: number;
+  }>;
 }
 
 export type TeamRoundStatus = "NOT_STARTED" | "IN_PROGRESS" | "SUBMITTED" | "LOCKED";
@@ -107,6 +157,26 @@ export interface TeamRoundState {
   lastSavedAt?: number;
   version: number;
   updatedAt: number;
+}
+
+export interface StageSubmissionRecord {
+  stageNumber: number;
+  prompt: string;
+  outputText?: string;
+  outputImageUrl?: string;
+  submittedAt: number;
+  isAutoSubmitted?: boolean;
+  automaticScore?: number;
+  ruleResults?: Array<{
+    ruleId?: string;
+    description?: string;
+    feedback?: string;
+    pass?: boolean;
+    passed?: boolean;
+    scoreAwarded?: number;
+    pointsEarned?: number;
+    maxPoints?: number;
+  }>;
 }
 
 export interface Submission {
@@ -127,6 +197,25 @@ export interface Submission {
   submittedBy: string;
   status: "FINAL";
   version: number;
+  // Quiz submission:
+  quizAnswers?: Record<number, "A" | "B" | "C">;
+  quizScore?: number;
+  // Progressive stages submissions:
+  stageSubmissions?: Record<number, StageSubmissionRecord>;
+  progressiveStageSubmissions?: StageSubmissionRecord[];
+  stageReached?: number;
+  ruleResults?: Array<{
+    ruleId?: string;
+    description?: string;
+    feedback?: string;
+    pass?: boolean;
+    passed?: boolean;
+    scoreAwarded?: number;
+    pointsEarned?: number;
+    maxPoints?: number;
+  }>;
+  automaticScoreTotal?: number;
+  automatedScore?: number;
   // Judging & Evaluation fields:
   score?: number;
   criteriaScores?: {
