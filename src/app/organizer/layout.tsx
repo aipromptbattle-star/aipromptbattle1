@@ -14,8 +14,13 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
 
   const handleSignOut = async () => {
     try {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("apb_organizer_authed");
+        window.localStorage.removeItem("apb_test_organizer");
+        window.sessionStorage.removeItem("apb_test_organizer");
+      }
       await signOut(auth);
-      router.push("/login");
+      router.push("/organizer-login");
     } catch (e) {
       console.error("Sign out error:", e);
     }

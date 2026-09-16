@@ -28,8 +28,8 @@ export interface Team {
   eligibleRounds: number[]; // e.g., [1, 2]
   registrationStatus?: "PENDING" | "CONFIRMED" | "CANCELLED";
   accessCode?: string; // Team access code / PIN for entry
-  source?: "MANUAL" | "GOOGLE_SHEETS" | {
-    type: "MANUAL" | "GOOGLE_SHEETS";
+  source?: "MANUAL" | "GOOGLE_SHEETS" | "TEST" | {
+    type: "MANUAL" | "GOOGLE_SHEETS" | "TEST";
     sourceId?: string | null;
   };
   sourceId?: string | null;
@@ -261,6 +261,8 @@ export interface Judge {
   active: boolean;
   createdAt: number;
   assignedCount?: number;
+  isOnline?: boolean;
+  lastHeartbeat?: number;
 }
 
 export interface JudgeAssignment {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { useJudgeAssignments, useJudgeScores } from "@/lib/firebase/judging";
+import { useJudgeAssignments, useJudgeScores, useJudgePresence } from "@/lib/firebase/judging";
 import { useEventState, useCurrentRound } from "@/lib/firebase/events";
 import { useTeams } from "@/lib/firebase/teams";
 import { APBCard } from "@/components/apb/APBCard";
@@ -14,6 +14,7 @@ import { Loader2, CheckCircle2, Clock, Scale, ArrowRight, AlertCircle, Sparkles,
 
 export default function JudgeDashboard() {
   const { user } = useAuth();
+  useJudgePresence(user?.uid);
   const { eventState, loading: eventLoading } = useEventState();
   const { currentRound, loading: roundLoading } = useCurrentRound(eventState?.currentRoundId || null);
 

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "./config";
+import { initializeApp, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut as secondarySignOut } from "firebase/auth";
 import {
   collection,
   doc,
@@ -18,8 +20,107 @@ import { logAudit } from "./teams";
 import { calculateDeterministicScore } from "../scoring";
 
 // ─────────────────────────────────────────────────────────────
-// 1. JUDGES MANAGEMENT (Organizer)
+// 1. JUDGES MANAGEMENT & ACCOUNT CREATION (Organizer)
 // ─────────────────────────────────────────────────────────────
+
+export async function createJudgeAccount({
+  displayName,
+  email,
+  password,
+}: {
+  displayName: string;
+  email: string;
+  password: string;
+}) {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanName = displayName.trim();
+  if (!cleanName) throw new Error("Judge Name is required.");
+  if (!cleanEmail) throw new Error("Judge Email is required.");
+  if (!password || password.length < 6) throw new Error("Password must be at least 6 characters.");
+
+  const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "dummy",
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "dummy",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "dummy",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "dummy",
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "dummy",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "dummy",
+  };
+
+  const secondaryAppName = `JudgeCreator_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+  const secondaryAuth = getAuth(secondaryApp);
+
+  try {
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, cleanEmail, password);
+    const uid = cred.user.uid;
+    await secondarySignOut(secondaryAuth);
+    await deleteApp(secondaryApp);
+
+    const judgeRef = doc(db, "judges", uid);
+    const newJudge: Judge = {
+      uid,
+      displayName: cleanName,
+      email: cleanEmail,
+      active: true,
+      createdAt: Date.now(),
+      isOnline: false,
+      lastHeartbeat: 0,
+    };
+    await setDoc(judgeRef, newJudge);
+    await logAudit("JUDGE_ACCOUNT_CREATED", "ORGANIZER", {
+      metadata: { uid, email: cleanEmail, displayName: cleanName },
+    });
+    return uid;
+  } catch (err: any) {
+    try {
+      await deleteApp(secondaryApp);
+    } catch {}
+    throw err;
+  }
+}
+
+export async function registerJudgeHeartbeat(uid: string) {
+  if (!uid) return;
+  try {
+    const judgeRef = doc(db, "judges", uid);
+    await updateDoc(judgeRef, {
+      isOnline: true,
+      lastHeartbeat: Date.now(),
+    });
+  } catch {}
+}
+
+export async function setJudgeOffline(uid: string) {
+  if (!uid) return;
+  try {
+    const judgeRef = doc(db, "judges", uid);
+    await updateDoc(judgeRef, {
+      isOnline: false,
+    });
+  } catch {}
+}
+
+export function useJudgePresence(judgeUid?: string | null) {
+  useEffect(() => {
+    if (!judgeUid) return;
+    registerJudgeHeartbeat(judgeUid);
+    const interval = setInterval(() => {
+      registerJudgeHeartbeat(judgeUid);
+    }, 30000);
+
+    const handleBeforeUnload = () => {
+      setJudgeOffline(judgeUid);
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      setJudgeOffline(judgeUid);
+    };
+  }, [judgeUid]);
+}
 
 export function useJudges() {
   const [judges, setJudges] = useState<Judge[]>([]);
@@ -213,6 +314,106 @@ export async function autoDistributeAssignments(
       submissionsCount: submissions.length,
       assignedCount,
       judgesCount: activeJudges.length,
+    },
+  });
+
+  return assignedCount;
+}
+
+/**
+ * Section 37-39: Auto-distribute teams to active judges.
+ * Allows organizer to enter any reasonable number (e.g. 10, 15, 20, 25 teams per judge)
+ * or evenly divide all teams with fair remainder distribution.
+ */
+export async function autoDistributeTeamsToJudges({
+  teamIds,
+  roundId,
+  judges,
+  teamsPerJudge,
+  eventId = "currentEvent",
+  assignedBy = "ORGANIZER",
+}: {
+  teamIds: string[];
+  roundId: string;
+  judges: Judge[];
+  teamsPerJudge?: number;
+  eventId?: string;
+  assignedBy?: string;
+}) {
+  const activeJudges = judges.filter((j) => j.active);
+  if (activeJudges.length === 0) {
+    throw new Error("No active judges available for assignment.");
+  }
+  if (teamIds.length === 0) {
+    throw new Error("No teams to distribute.");
+  }
+
+  // Clear existing assignments for this round
+  const existingQ = query(
+    collection(db, "judgeAssignments"),
+    where("roundId", "==", roundId)
+  );
+  const existingSnap = await getDocs(existingQ);
+  const deleteBatch = existingSnap.docs.map((d) => deleteDoc(d.ref));
+  await Promise.all(deleteBatch);
+
+  // Compute distribution per judge
+  const totalTeams = teamIds.length;
+  const numJudges = activeJudges.length;
+  let judgeCapacity: number[] = [];
+
+  if (teamsPerJudge && teamsPerJudge > 0) {
+    judgeCapacity = activeJudges.map(() => teamsPerJudge);
+  } else {
+    const base = Math.floor(totalTeams / numJudges);
+    let remainder = totalTeams % numJudges;
+    judgeCapacity = activeJudges.map(() => {
+      let cap = base;
+      if (remainder > 0) {
+        cap += 1;
+        remainder--;
+      }
+      return cap;
+    });
+  }
+
+  let teamIndex = 0;
+  let assignedCount = 0;
+
+  for (let j = 0; j < activeJudges.length; j++) {
+    const judge = activeJudges[j];
+    const limit = judgeCapacity[j] || 0;
+
+    for (let c = 0; c < limit && teamIndex < teamIds.length; c++) {
+      const tId = teamIds[teamIndex];
+      teamIndex++;
+
+      const assignmentId = `${eventId}_${roundId}_${tId}_${judge.uid}`;
+      const ref = doc(db, "judgeAssignments", assignmentId);
+      const assignment: JudgeAssignment = {
+        id: assignmentId,
+        eventId,
+        roundId,
+        submissionId: tId,
+        teamId: tId,
+        judgeId: judge.uid,
+        judgeName: judge.displayName,
+        status: "PENDING",
+        createdAt: Date.now(),
+        assignedBy,
+      };
+      await setDoc(ref, assignment);
+      assignedCount++;
+    }
+  }
+
+  await logAudit("TEAMS_AUTO_DISTRIBUTED", "ORGANIZER", {
+    metadata: {
+      roundId,
+      totalTeams,
+      assignedCount,
+      judgesCount: activeJudges.length,
+      teamsPerJudge: teamsPerJudge || "BALANCED",
     },
   });
 

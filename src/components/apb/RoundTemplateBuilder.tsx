@@ -48,24 +48,35 @@ export function RoundTemplateBuilder({
   const [roundNumber, setRoundNumber] = useState(effectiveInitialNumber);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(20);
+  const [challengeType, setChallengeType] = useState<"TEXT" | "IMAGE" | "COMBINED">("COMBINED");
   const [loading, setLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // 1. Quiz Template State (20 questions)
+  // 1. Quiz Template State (default 20 questions, fully editable)
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(DEFAULT_QUIZ_QUESTIONS);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
 
-  // 2. Progressive Constraint Template State (5 stages: Initial + 4 constraints)
+  // 2. Progressive Constraint Template State (default 5 stages, fully editable)
   const [progressiveStages, setProgressiveStages] = useState<ProgressiveConstraintStage[]>(DEFAULT_PROGRESSIVE_STAGES);
 
   const handleSelectTemplate = (type: RoundTemplateType) => {
     setSelectedTemplate(type);
     if (type === "QUIZ") {
       setTitle("Speed Quiz Challenge");
-      setDescription("Round 1: Rapid-fire 20-question AI prompt engineering quiz.");
+      setDescription("Round 1: Rapid-fire AI prompt engineering quiz.");
+      setDurationMinutes(20);
+      setChallengeType("TEXT");
     } else if (type === "PROGRESSIVE_CONSTRAINT") {
       setTitle("Progressive Prompt Breaker");
-      setDescription("Round 2: Adaptive prompt engineering across 5 evolving constraint stages.");
+      setDescription("Round 2: Adaptive prompt engineering across progressive constraint stages.");
+      setDurationMinutes(20);
+      setChallengeType("COMBINED");
+    } else {
+      setTitle("Open Prompt Challenge");
+      setDescription("Standard prompt battle round with freeform text, prompt engineering, and asset generation.");
+      setDurationMinutes(25);
+      setChallengeType("COMBINED");
     }
   };
 
@@ -83,9 +94,46 @@ export function RoundTemplateBuilder({
     setQuizQuestions(next);
   };
 
+  const handleAddQuizQuestion = () => {
+    const newQ: QuizQuestion = {
+      id: Date.now(),
+      question: `New Question #${quizQuestions.length + 1}`,
+      options: ["Option A", "Option B", "Option C"],
+      correctAnswer: "A",
+      points: 1,
+    };
+    const next = [...quizQuestions, newQ];
+    setQuizQuestions(next);
+    setActiveQuestionIndex(next.length - 1);
+  };
+
+  const handleRemoveQuizQuestion = (index: number) => {
+    if (quizQuestions.length <= 1) return;
+    const next = quizQuestions.filter((_, i) => i !== index);
+    setQuizQuestions(next);
+    setActiveQuestionIndex(Math.max(0, index - 1));
+  };
+
   const handleUpdateStageStatement = (stageNum: number, statement: string) => {
     const next = progressiveStages.map((s) => (s.stageNumber === stageNum ? { ...s, statement } : s));
     setProgressiveStages(next);
+  };
+
+  const handleAddStage = () => {
+    const nextStageNum = progressiveStages.length + 1;
+    const stageDuration = Math.max(1, Math.floor(durationMinutes / nextStageNum));
+    const newStage: ProgressiveConstraintStage = {
+      stageNumber: nextStageNum,
+      stageName: `Stage 0${nextStageNum}`,
+      unlockMinute: (nextStageNum - 1) * stageDuration,
+      statement: `Constraint ${nextStageNum}: Specify new dynamic requirement.`,
+    };
+    setProgressiveStages([...progressiveStages, newStage]);
+  };
+
+  const handleRemoveStage = () => {
+    if (progressiveStages.length <= 2) return;
+    setProgressiveStages(progressiveStages.slice(0, progressiveStages.length - 1));
   };
 
   const handleCreateRound = async () => {
@@ -93,19 +141,26 @@ export function RoundTemplateBuilder({
     setLoading(true);
 
     try {
-      const durationSeconds = 1200; // Fixed non-negotiable 20 minutes for both templates
+      const durationSeconds = Math.max(60, durationMinutes * 60);
+
+      // Re-derive unlock minutes for progressive stages according to duration
+      const stageInterval = Math.max(1, Math.floor(durationMinutes / progressiveStages.length));
+      const adjustedStages = progressiveStages.map((stg, idx) => ({
+        ...stg,
+        unlockMinute: idx * stageInterval,
+      }));
 
       const payload: Partial<Round> = {
         roundNumber,
-        title: title.trim() || (selectedTemplate === "QUIZ" ? "Speed Quiz" : "Prompt Breaker"),
+        title: title.trim() || (selectedTemplate === "QUIZ" ? "Speed Quiz" : selectedTemplate === "PROGRESSIVE_CONSTRAINT" ? "Prompt Breaker" : "Prompt Challenge"),
         description: description.trim(),
         durationSeconds,
         templateType: selectedTemplate,
-        challengeType: selectedTemplate === "QUIZ" ? "TEXT" : "COMBINED",
+        challengeType: selectedTemplate === "QUIZ" ? "TEXT" : (selectedTemplate === "PROGRESSIVE_CONSTRAINT" ? "COMBINED" : challengeType),
         status: "READY",
         quizQuestions: selectedTemplate === "QUIZ" ? quizQuestions : undefined,
-        progressiveStages: selectedTemplate === "PROGRESSIVE_CONSTRAINT" ? progressiveStages : undefined,
-        initialStatement: selectedTemplate === "PROGRESSIVE_CONSTRAINT" ? progressiveStages[0]?.statement : undefined,
+        progressiveStages: selectedTemplate === "PROGRESSIVE_CONSTRAINT" ? adjustedStages : undefined,
+        initialStatement: selectedTemplate === "PROGRESSIVE_CONSTRAINT" ? adjustedStages[0]?.statement : undefined,
       };
 
       if (onSaveRound) {
@@ -133,7 +188,7 @@ export function RoundTemplateBuilder({
     templateType: selectedTemplate || "QUIZ",
     quizQuestions,
     progressiveStages,
-    durationSeconds: 1200,
+    durationSeconds: durationMinutes * 60,
   };
 
   const content = (
@@ -150,28 +205,30 @@ export function RoundTemplateBuilder({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {/* 1. Quiz Template Card */}
             <div
               onClick={() => handleSelectTemplate("QUIZ")}
-              className="p-6 rounded-2xl bg-[var(--color-apb-surface)] border-2 border-[var(--color-apb-surface-border)] hover:border-[var(--color-apb-cyan)] hover:shadow-[0_0_25px_rgba(0,240,255,0.15)] cursor-pointer transition-all group space-y-4 text-left"
+              className="p-6 rounded-2xl bg-[var(--color-apb-surface)] border-2 border-[var(--color-apb-surface-border)] hover:border-[var(--color-apb-cyan)] hover:shadow-[0_0_25px_rgba(0,240,255,0.15)] cursor-pointer transition-all group space-y-4 text-left flex flex-col justify-between"
             >
-              <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-xl bg-[var(--color-apb-cyan)]/10 border border-[var(--color-apb-cyan)]/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                  🧠
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-[var(--color-apb-cyan)]/10 border border-[var(--color-apb-cyan)]/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    🧠
+                  </div>
+                  <span className="text-[10px] font-mono uppercase font-bold px-2.5 py-1 rounded bg-[var(--color-apb-cyan)]/15 text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30">
+                    ROUND 01
+                  </span>
                 </div>
-                <span className="text-[10px] font-mono uppercase font-bold px-2.5 py-1 rounded bg-[var(--color-apb-cyan)]/15 text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30">
-                  ROUND 01
-                </span>
-              </div>
 
-              <div>
-                <h4 className="text-lg font-mono font-bold text-white uppercase group-hover:text-[var(--color-apb-cyan)] transition-colors">
-                  QUIZ TEMPLATE
-                </h4>
-                <p className="text-xs text-muted-foreground mt-1 font-mono">
-                  20 Questions • 20 Minutes • Exactly 3 Options • 1 Point Each • Automated 00:00 Submission
-                </p>
+                <div>
+                  <h4 className="text-base font-mono font-bold text-white uppercase group-hover:text-[var(--color-apb-cyan)] transition-colors">
+                    QUIZ TEMPLATE
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">
+                    20 Questions • 20 Mins • Exactly 3 Options • 1 Pt Each • Auto-Submit
+                  </p>
+                </div>
               </div>
 
               <div className="pt-2 flex items-center text-xs font-mono text-[var(--color-apb-cyan)] font-semibold">
@@ -182,28 +239,60 @@ export function RoundTemplateBuilder({
             {/* 2. Progressive Constraint Template Card */}
             <div
               onClick={() => handleSelectTemplate("PROGRESSIVE_CONSTRAINT")}
-              className="p-6 rounded-2xl bg-[var(--color-apb-surface)] border-2 border-[var(--color-apb-surface-border)] hover:border-[var(--color-apb-cyan)] hover:shadow-[0_0_25px_rgba(0,240,255,0.15)] cursor-pointer transition-all group space-y-4 text-left"
+              className="p-6 rounded-2xl bg-[var(--color-apb-surface)] border-2 border-[var(--color-apb-surface-border)] hover:border-[var(--color-apb-cyan)] hover:shadow-[0_0_25px_rgba(0,240,255,0.15)] cursor-pointer transition-all group space-y-4 text-left flex flex-col justify-between"
             >
-              <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                  ⚡
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    ⚡
+                  </div>
+                  <span className="text-[10px] font-mono uppercase font-bold px-2.5 py-1 rounded bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                    ROUND 02
+                  </span>
                 </div>
-                <span className="text-[10px] font-mono uppercase font-bold px-2.5 py-1 rounded bg-purple-500/15 text-purple-400 border border-purple-500/30">
-                  ROUND 02
-                </span>
-              </div>
 
-              <div>
-                <h4 className="text-lg font-mono font-bold text-white uppercase group-hover:text-purple-400 transition-colors">
-                  PROGRESSIVE CONSTRAINT
-                </h4>
-                <p className="text-xs text-muted-foreground mt-1 font-mono">
-                  20 Minutes • 5 Stages × 4 Mins • New Constraint Every 4 Mins • Automatic Stage Freeze & Rules Evaluation
-                </p>
+                <div>
+                  <h4 className="text-base font-mono font-bold text-white uppercase group-hover:text-purple-400 transition-colors">
+                    PROGRESSIVE CONSTRAINT
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">
+                    20 Mins • 5 Stages × 4 Mins • New Constraint Every 4 Mins • Auto Freeze
+                  </p>
+                </div>
               </div>
 
               <div className="pt-2 flex items-center text-xs font-mono text-purple-400 font-semibold">
-                Configure Constraint Round <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
+                Configure Constraint <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+
+            {/* 3. Standard Prompt Battle Card */}
+            <div
+              onClick={() => handleSelectTemplate("STANDARD")}
+              className="p-6 rounded-2xl bg-[var(--color-apb-surface)] border-2 border-[var(--color-apb-surface-border)] hover:border-amber-400 hover:shadow-[0_0_25px_rgba(251,191,36,0.15)] cursor-pointer transition-all group space-y-4 text-left flex flex-col justify-between"
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    🎯
+                  </div>
+                  <span className="text-[10px] font-mono uppercase font-bold px-2.5 py-1 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                    STANDARD
+                  </span>
+                </div>
+
+                <div>
+                  <h4 className="text-base font-mono font-bold text-white uppercase group-hover:text-amber-400 transition-colors">
+                    STANDARD BATTLE
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">
+                    Freeform AI Prompting • Text & Image Assets • Custom Timer • Judge Rubrics
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center text-xs font-mono text-amber-400 font-semibold">
+                Configure Standard <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </div>
@@ -214,15 +303,19 @@ export function RoundTemplateBuilder({
           <div className="flex items-center justify-between border-b border-[var(--color-apb-surface-border)] pb-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">
-                {selectedTemplate === "QUIZ" ? "🧠" : "⚡"}
+                {selectedTemplate === "QUIZ" ? "🧠" : selectedTemplate === "PROGRESSIVE_CONSTRAINT" ? "⚡" : "🎯"}
               </span>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-bold text-[var(--color-apb-cyan)] uppercase">
-                    {selectedTemplate === "QUIZ" ? "Round 01 — Quiz Template" : "Round 02 — Progressive Constraint Template"}
+                    {selectedTemplate === "QUIZ"
+                      ? "Round 01 — Quiz Template"
+                      : selectedTemplate === "PROGRESSIVE_CONSTRAINT"
+                      ? "Round 02 — Progressive Constraint Template"
+                      : "Standard Prompt Battle Template"}
                   </span>
                   <span className="text-[10px] font-mono text-muted-foreground">
-                    (20 Minutes Fixed)
+                    ({durationMinutes} Minutes Configured)
                   </span>
                 </div>
                 <h3 className="text-lg font-mono font-bold text-white uppercase">
@@ -253,13 +346,24 @@ export function RoundTemplateBuilder({
           </div>
 
           {/* General Metadata */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
               <Label className="font-mono text-xs text-muted-foreground uppercase block mb-1">Round Number</Label>
               <Input
                 type="number"
                 value={roundNumber}
                 onChange={(e) => setRoundNumber(parseInt(e.target.value) || 1)}
+                className="font-mono text-sm bg-black/50"
+              />
+            </div>
+            <div>
+              <Label className="font-mono text-xs text-muted-foreground uppercase block mb-1">Duration (Minutes)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={180}
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(Math.max(1, parseInt(e.target.value) || 1))}
                 className="font-mono text-sm bg-black/50"
               />
             </div>
@@ -272,7 +376,44 @@ export function RoundTemplateBuilder({
                 className="font-mono text-sm bg-black/50"
               />
             </div>
+            <div className="sm:col-span-4">
+              <Label className="font-mono text-xs text-muted-foreground uppercase block mb-1">Round Description / Brief</Label>
+              <Input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Event instructions displayed to participants..."
+                className="font-mono text-sm bg-black/50"
+              />
+            </div>
           </div>
+
+          {/* 0. STANDARD ROUND PROMPT BRIEF */}
+          {selectedTemplate === "STANDARD" && (
+            <APBCard className="p-6 space-y-4 bg-black/40 border-[var(--color-apb-surface-border)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-mono text-xs font-bold text-white uppercase tracking-wider">
+                    Standard Challenge Settings
+                  </h4>
+                  <p className="text-[11px] font-mono text-muted-foreground mt-0.5">
+                    Configure participant submission requirements for open prompt challenges.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="font-mono text-xs text-muted-foreground uppercase">Challenge Mode:</Label>
+                  <select
+                    value={challengeType}
+                    onChange={(e: any) => setChallengeType(e.target.value)}
+                    className="bg-black/60 border border-[var(--color-apb-surface-border)] rounded px-2.5 py-1 text-xs font-mono text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
+                  >
+                    <option value="COMBINED">Combined (Text + Image Prompting)</option>
+                    <option value="TEXT">Text Only</option>
+                    <option value="IMAGE">Image / Creative Only</option>
+                  </select>
+                </div>
+              </div>
+            </APBCard>
+          )}
 
           {/* 1. QUIZ QUESTIONS EDITOR (§25) */}
           {selectedTemplate === "QUIZ" && (

@@ -21,19 +21,6 @@ import {
   RefreshCw
 } from "lucide-react";
 
-const DISPLAY_LAYOUTS = [
-  { id: 1, name: "Esports Arena", description: "Default tournament broadcast with high-contrast timer, large mission objective, and telemetry pill" },
-  { id: 2, name: "Clean Podium", description: "Ultra-minimalist stage focus with centered countdown and clean typographic hierarchy" },
-  { id: 3, name: "Constraint Focus", description: "Designed for Round 2: large multi-line constraint statement with stage timeline" },
-  { id: 4, name: "Telemetry Grid", description: "Esports command stats: timer, stage, submission telemetry, and team counter" },
-  { id: 5, name: "Cyber Neon", description: "Vibrant dark cyberpunk aesthetic with electric cyan and purple visual accents" },
-  { id: 6, name: "Auditorium Wide", description: "Optimized for ultra-wide auditorium projectors (21:9 & 16:9 cinema displays)" },
-  { id: 7, name: "Classroom Projector", description: "Enhanced contrast tuned for ambient-light lecture halls and standard projectors" },
-  { id: 8, name: "Compact Stage", description: "Tuned for side TVs and judges' auxiliary confidence monitors" },
-  { id: 9, name: "Stream Broadcast", description: "Split layout optimized for OBS / streaming overlays and external HDMI capture" },
-  { id: 10, name: "Midnight Monolith", description: "Ultra-massive high-contrast numbers designed for 100m+ auditorium legibility" },
-];
-
 export default function OrganizerDisplayControl() {
   const { eventState, loading: eventLoading } = useEventState();
   const { currentRound } = useCurrentRound(eventState?.currentRoundId || null);
@@ -42,7 +29,6 @@ export default function OrganizerDisplayControl() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const activeMode: DisplayMode = eventState?.displayOverride || "AUTOMATIC";
-  const activeLayout = eventState?.activeDisplayLayout || 1;
 
   const showNotification = (msg: string) => {
     setFeedback(msg);
@@ -53,21 +39,9 @@ export default function OrganizerDisplayControl() {
     setSaving(true);
     try {
       await updateEventSettings({ displayOverride: mode });
-      showNotification(`Public Display switched to: ${mode}`);
+      showNotification(`Host Display switched to: ${mode}`);
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "Failed to update display mode.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSetLayout = async (layoutId: number) => {
-    setSaving(true);
-    try {
-      await updateEventSettings({ activeDisplayLayout: layoutId });
-      showNotification(`Display preset set to Layout ${layoutId}`);
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Failed to update display layout.");
     } finally {
       setSaving(false);
     }
@@ -81,30 +55,39 @@ export default function OrganizerDisplayControl() {
     );
   }
 
+  const currentDisplayLabel = 
+    activeMode === "LEADERBOARD" 
+      ? "LEADERBOARD" 
+      : activeMode === "WAITING" 
+      ? "WAITING SCREEN" 
+      : activeMode === "LIVE_ROUND" || activeMode === "AUTOMATIC"
+      ? (currentRound?.status === "LIVE" ? "LIVE ROUND" : currentRound?.status === "STARTING" ? "COUNTDOWN" : currentRound?.status === "PAUSED" ? "PAUSED" : "WAITING SCREEN")
+      : "LIVE ROUND";
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-apb-surface-border)] pb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h2 className="text-2xl sm:text-3xl font-mono font-bold uppercase tracking-wider text-white flex items-center gap-3">
               <Monitor className="w-6 h-6 text-[var(--color-apb-cyan)]" />
-              <span>DISPLAY SCREEN CONTROL</span>
+              <span>DISPLAY CONTROL</span>
             </h2>
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              LIVE CONNECTION
+              HOST DISPLAY ● CONNECTED
             </span>
           </div>
           <p className="text-muted-foreground text-sm font-mono">
-            Control What the Public Auditorium / Projector Display (/display) is Rendering
+            Directly control what is projected onto the audience screen (/display).
           </p>
         </div>
 
         <Link href="/display" target="_blank" rel="noopener noreferrer">
           <APBButton glow size="sm" className="font-mono text-xs uppercase tracking-wider">
             <ExternalLink className="w-4 h-4 mr-2" />
-            Launch Host Display Screen ↗
+            Launch Host Display ↗
           </APBButton>
         </Link>
       </div>
@@ -119,170 +102,193 @@ export default function OrganizerDisplayControl() {
         </div>
       )}
 
-      {/* Current Screen Telemetry Card */}
+      {/* Current Display Status Card */}
       <APBCard className="p-6 bg-gradient-to-r from-[var(--color-apb-surface)] via-black/40 to-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1 font-mono">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">ACTIVE PRESENTATION STATE</div>
-            <div className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-              <span>
-                {activeMode === "AUTOMATIC" ? "AUTOMATIC EVENT SYNC" : activeMode}
-              </span>
-              {activeMode !== "AUTOMATIC" && (
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-xs uppercase font-bold">
-                  MANUAL OVERRIDE
-                </span>
-              )}
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">CURRENT DISPLAY</div>
+            <div className="text-3xl font-black text-white flex items-center gap-3">
+              <span className="text-[var(--color-apb-cyan)]">●</span>
+              <span>{currentDisplayLabel}</span>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Active Round: {currentRound ? `Round 0${currentRound.roundNumber} (${currentRound.title})` : "None"} • Layout: #{activeLayout}
+              Active Round: {currentRound ? `Round 0${currentRound.roundNumber} (${currentRound.title})` : "None"} • Status: {currentRound?.status || "READY"}
             </div>
           </div>
 
-          {activeMode !== "AUTOMATIC" && (
-            <APBButton 
-              variant="outline" 
-              size="sm" 
-              onClick={() => handleSetMode("AUTOMATIC")} 
-              disabled={saving}
-              className="font-mono text-xs border-white/20 text-white hover:bg-white/10"
-            >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Return to Auto Sync
-            </APBButton>
-          )}
+          <div className="text-right">
+            <span className="text-xs font-mono text-muted-foreground block mb-1">AUDIENCE URL</span>
+            <span className="text-xs font-mono text-[var(--color-apb-cyan)] px-2.5 py-1 rounded bg-black/60 border border-white/10">
+              /display
+            </span>
+          </div>
         </div>
       </APBCard>
 
-      {/* Section 16 & 17: Display Mode Controls */}
+      {/* Mode Switch Buttons (§16 & §55) */}
       <div className="space-y-4">
         <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground font-bold">
-          DISPLAY CONTENT MODES
+          SWITCH DISPLAY STATE
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div 
-            onClick={() => handleSetMode("AUTOMATIC")} 
-            className={`cursor-pointer transition-all rounded-xl p-5 border font-mono ${
-              activeMode === "AUTOMATIC" 
-                ? "bg-[var(--color-apb-cyan)]/15 border-[var(--color-apb-cyan)] text-white shadow-lg shadow-cyan-950/40" 
-                : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/20"
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* 1. SHOW LIVE ROUND */}
+          <button
+            type="button"
+            onClick={() => handleSetMode("LIVE_ROUND")}
+            disabled={saving}
+            className={`p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
+              activeMode === "LIVE_ROUND" || (activeMode === "AUTOMATIC" && currentRound?.status === "LIVE")
+                ? "bg-emerald-950/30 border-emerald-500 text-white shadow-lg shadow-emerald-950/50 ring-1 ring-emerald-500/50"
+                : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/30 hover:text-white"
             }`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-white font-bold text-sm uppercase">
-                <Radio className="w-4 h-4 text-[var(--color-apb-cyan)]" />
-                <span>Auto Event Sync</span>
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <Flame className="w-5 h-5" />
               </div>
-              {activeMode === "AUTOMATIC" && <Check className="w-4 h-4 text-[var(--color-apb-cyan)]" />}
+              {(activeMode === "LIVE_ROUND" || (activeMode === "AUTOMATIC" && currentRound?.status === "LIVE")) && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] uppercase font-bold">
+                  ACTIVE
+                </span>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Follows live round, 5s countdown, active stage, and constraint reveal automatically.
-            </p>
-          </div>
 
-          <div 
-            onClick={() => handleSetMode("LEADERBOARD")} 
-            className={`cursor-pointer transition-all rounded-xl p-5 border font-mono ${
-              activeMode === "LEADERBOARD" 
-                ? "bg-yellow-500/15 border-yellow-500 text-white shadow-lg shadow-yellow-950/40" 
-                : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/20"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-yellow-300 font-bold text-sm uppercase">
-                <Trophy className="w-4 h-4 text-yellow-400" />
-                <span>Show Leaderboard</span>
+            <div>
+              <div className="text-base font-bold text-white uppercase tracking-wider">
+                SHOW LIVE ROUND
               </div>
-              {activeMode === "LEADERBOARD" && <Check className="w-4 h-4 text-yellow-400" />}
+              <p className="text-xs text-muted-foreground mt-1">
+                Displays live timer, active challenge statement, and constraint reveals.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Pushes official standings and scores to the host display for the audience.
-            </p>
-          </div>
+          </button>
 
-          <div 
-            onClick={() => handleSetMode("WAITING")} 
-            className={`cursor-pointer transition-all rounded-xl p-5 border font-mono ${
-              activeMode === "WAITING" 
-                ? "bg-purple-500/15 border-purple-500 text-white shadow-lg shadow-purple-950/40" 
-                : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/20"
+          {/* 2. SHOW LEADERBOARD */}
+          <button
+            type="button"
+            onClick={() => handleSetMode("LEADERBOARD")}
+            disabled={saving}
+            className={`p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
+              activeMode === "LEADERBOARD"
+                ? "bg-yellow-950/30 border-yellow-500 text-white shadow-lg shadow-yellow-950/50 ring-1 ring-yellow-500/50"
+                : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/30 hover:text-white"
             }`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-purple-300 font-bold text-sm uppercase">
-                <Clock className="w-4 h-4 text-purple-400" />
-                <span>Show Waiting Screen</span>
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
+                <Trophy className="w-5 h-5" />
               </div>
-              {activeMode === "WAITING" && <Check className="w-4 h-4 text-purple-400" />}
+              {activeMode === "LEADERBOARD" && (
+                <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 text-[10px] uppercase font-bold">
+                  ACTIVE
+                </span>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Presents "Next Round Starting Soon • Standby for Instructions" screen.
-            </p>
-          </div>
 
-          <div 
-            onClick={() => handleSetMode("LIVE_ROUND")} 
-            className={`cursor-pointer transition-all rounded-xl p-5 border font-mono ${
-              activeMode === "LIVE_ROUND" 
-                ? "bg-emerald-500/15 border-emerald-500 text-white shadow-lg shadow-emerald-950/40" 
-                : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/20"
+            <div>
+              <div className="text-base font-bold text-white uppercase tracking-wider">
+                SHOW LEADERBOARD
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Pushes official rankings and verified team scores to the projector screen.
+              </p>
+            </div>
+          </button>
+
+          {/* 3. SHOW WAITING SCREEN */}
+          <button
+            type="button"
+            onClick={() => handleSetMode("WAITING")}
+            disabled={saving}
+            className={`p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
+              activeMode === "WAITING"
+                ? "bg-purple-950/30 border-purple-500 text-white shadow-lg shadow-purple-950/50 ring-1 ring-purple-500/50"
+                : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/30 hover:text-white"
             }`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-emerald-300 font-bold text-sm uppercase">
-                <Flame className="w-4 h-4 text-emerald-400" />
-                <span>Show Live Round</span>
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                <Clock className="w-5 h-5" />
               </div>
-              {activeMode === "LIVE_ROUND" && <Check className="w-4 h-4 text-emerald-400" />}
+              {activeMode === "WAITING" && (
+                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/40 text-[10px] uppercase font-bold">
+                  ACTIVE
+                </span>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Forces display back to active live round statements and timer.
-            </p>
-          </div>
+
+            <div>
+              <div className="text-base font-bold text-white uppercase tracking-wider">
+                SHOW WAITING SCREEN
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Displays "READY • WAITING FOR START" standby screen between rounds.
+              </p>
+            </div>
+          </button>
         </div>
       </div>
 
-      {/* Section 22: 10 Display Layouts System */}
-      <div className="space-y-4">
+      {/* DISPLAY PREVIEW (§16) */}
+      <div className="space-y-3">
         <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground font-bold flex items-center justify-between">
-          <span>DISPLAY LAYOUT PRESETS (10 LAYOUT SYSTEM)</span>
-          <span className="text-[var(--color-apb-cyan)] font-normal">Active: Layout {activeLayout}</span>
+          <span>DISPLAY PREVIEW</span>
+          <span className="text-[var(--color-apb-cyan)] text-[11px]">Live mirror of /display</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 font-mono">
-          {DISPLAY_LAYOUTS.map((layout) => {
-            const isSelected = activeLayout === layout.id;
+        <div className="rounded-2xl border border-[var(--color-apb-surface-border)] overflow-hidden bg-black aspect-video max-w-2xl mx-auto shadow-2xl flex flex-col justify-between p-6 text-center select-none relative">
+          <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+            <span>[HOST DISPLAY PREVIEW]</span>
+            <span className="text-emerald-400 uppercase font-bold">● {currentDisplayLabel}</span>
+          </div>
 
-            return (
-              <div
-                key={layout.id}
-                onClick={() => handleSetLayout(layout.id)}
-                className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between gap-3 ${
-                  isSelected
-                    ? "bg-[var(--color-apb-cyan)]/15 border-[var(--color-apb-cyan)] text-white shadow-md shadow-cyan-950/30 ring-1 ring-[var(--color-apb-cyan)]/40"
-                    : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/20 hover:text-white"
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      #{String(layout.id).padStart(2, "0")}
-                    </span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-[var(--color-apb-cyan)]" />}
-                  </div>
-                  <div className="text-sm font-bold text-white uppercase">{layout.name}</div>
-                  <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                    {layout.description}
-                  </p>
+          <div className="my-auto space-y-2">
+            {activeMode === "LEADERBOARD" ? (
+              <div className="space-y-2">
+                <div className="text-xs font-mono text-yellow-400 uppercase font-bold tracking-widest">
+                  🏆 LEADERBOARD STANDINGS
                 </div>
-
-                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
-                  <span>{isSelected ? "ACTIVE" : "CLICK TO APPLY"}</span>
-                  <span>→</span>
+                <div className="text-xl font-mono font-bold text-white uppercase">
+                  Round 0{currentRound?.roundNumber || 1} Scores
                 </div>
               </div>
-            );
-          })}
+            ) : activeMode === "WAITING" || (!currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT") ? (
+              <div className="space-y-2">
+                <div className="text-xs font-mono text-[var(--color-apb-cyan)] uppercase tracking-widest font-bold">
+                  READY • WAITING FOR START
+                </div>
+                <div className="text-2xl font-mono font-black text-white uppercase">
+                  ROUND 0{currentRound?.roundNumber || 1}
+                </div>
+                <div className="text-sm font-mono text-white/70 uppercase">
+                  {currentRound?.title || "QUIZ"}
+                </div>
+              </div>
+            ) : currentRound.status === "STARTING" ? (
+              <div className="space-y-1">
+                <div className="text-xs font-mono text-amber-400 uppercase font-bold">ROUND STARTING</div>
+                <div className="text-5xl font-mono font-black text-amber-400">5...</div>
+              </div>
+            ) : currentRound.status === "PAUSED" ? (
+              <div className="space-y-1">
+                <div className="text-xs font-mono text-amber-400 uppercase font-bold">ROUND PAUSED</div>
+                <div className="text-4xl font-mono font-bold text-amber-400">07:42</div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-xs font-mono text-muted-foreground uppercase">TIME REMAINING</div>
+                <div className="text-5xl font-mono font-black text-white">19:38</div>
+                <div className="text-xs font-mono text-[var(--color-apb-cyan)] uppercase font-bold">
+                  ROUND 0{currentRound.roundNumber} • {currentRound.title}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="text-[10px] font-mono text-muted-foreground">
+            Audience projection mode • Zero client controls visible
+          </div>
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Submission, Round, JudgeScore, ScoringCriterion, DEFAULT_SCORING_CRITERIA } from "@/lib/firebase/schema";
-import { saveJudgeScore } from "@/lib/firebase/judging";
+import { saveJudgeScore, useJudgePresence } from "@/lib/firebase/judging";
 import { calculateDeterministicScore } from "@/lib/scoring";
 import { APBCard } from "@/components/apb/APBCard";
 import { APBButton } from "@/components/apb/APBButton";
@@ -33,6 +33,7 @@ export default function JudgeSubmissionWorkspace() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  useJudgePresence(user?.uid);
   const submissionId = params.submissionId as string;
 
   const [submission, setSubmission] = useState<Submission | null>(null);

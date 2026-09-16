@@ -177,113 +177,76 @@ export default function PublicHostDisplay() {
     return t ? t.displayName : tId;
   };
 
+  // Touch swipe listener for subtle immersive interaction
+  const touchStartYRef = useRef<number | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0]?.clientY || null;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartYRef.current !== null) {
+      const touchEndY = e.changedTouches[0]?.clientY || 0;
+      const diff = touchEndY - touchStartYRef.current;
+      // If pulled downward from top (> 80px), toggle fullscreen
+      if (diff > 80 && window.scrollY <= 10) {
+        toggleFullscreen();
+      }
+      touchStartYRef.current = null;
+    }
+  };
+
   if (eventLoading || roundLoading) {
     return (
-      <div className="min-h-screen bg-[#050608] text-white flex flex-col items-center justify-center p-8 font-mono">
+      <div className="min-h-screen bg-[#05070B] text-white flex flex-col items-center justify-center p-8 font-mono">
         <div className="w-12 h-12 border-2 border-[var(--color-apb-cyan)] border-t-transparent rounded-full animate-spin mb-4" />
         <div className="text-xl tracking-widest uppercase text-white/80">Connecting to Battle Control...</div>
       </div>
     );
   }
 
-  // Layout-specific styling accents (10 Layouts)
-  const layoutClassNames = [
-    "from-[#050608] via-[#080b12] to-[#050608]", // 01 Esports Arena
-    "from-slate-950 via-zinc-950 to-black", // 02 Clean Podium
-    "from-purple-950/20 via-black to-slate-950", // 03 Constraint Focus
-    "from-cyan-950/20 via-black to-slate-950", // 04 Telemetry Grid
-    "from-[#0a0518] via-black to-[#051118]", // 05 Cyber Neon
-    "from-black via-[#060c18] to-black", // 06 Auditorium Wide
-    "from-zinc-900 via-neutral-950 to-black", // 07 Classroom Projector
-    "from-[#06070a] via-black to-[#06070a]", // 08 Compact Stage
-    "from-[#040810] via-black to-[#080410]", // 09 Stream Broadcast
-    "from-black via-black to-black", // 10 Midnight Monolith
-  ];
-  const bgGradient = layoutClassNames[(activeLayout - 1) % layoutClassNames.length];
-
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${bgGradient} text-white flex flex-col justify-between select-none relative overflow-hidden font-sans`}>
+    <div 
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="min-h-screen bg-[#05070B] text-white flex flex-col justify-between select-none relative overflow-hidden font-sans"
+    >
       {/* Background Ambience Glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(0,240,255,0.08)_0%,_transparent_70%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(168,85,247,0.06)_0%,_transparent_70%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(0,240,255,0.06)_0%,_transparent_65%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(168,85,247,0.05)_0%,_transparent_65%)] pointer-events-none" />
 
-      {/* TOP BAR */}
-      <header className="relative z-10 w-full px-8 py-5 flex items-center justify-between border-b border-white/10 bg-black/40 backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <div className="w-3 h-10 bg-[var(--color-apb-cyan)] rounded-sm shadow-[0_0_15px_rgba(0,240,255,0.8)]" />
-          <div>
-            <h1 className="text-2xl md:text-3xl font-mono font-black tracking-widest text-white uppercase flex items-center gap-3">
-              <span>AI PROMPT BATTLE</span>
-            </h1>
-            <p className="text-xs md:text-sm font-mono tracking-widest text-[var(--color-apb-cyan)] uppercase opacity-90">
-              THINK. PROMPT. CREATE.
-            </p>
-          </div>
-        </div>
-
-        {/* Telemetry & Fullscreen */}
-        <div className="flex items-center gap-4 sm:gap-6 font-mono text-xs">
-          {/* Active Layout Badge */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 border border-white/10 text-white/60">
-            <Radio className="w-3 h-3 text-[var(--color-apb-cyan)]" />
-            <span>LAYOUT {String(activeLayout).padStart(2, "0")}</span>
-          </div>
-
-          {/* Connection Indicator */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-            {isOnline ? (
-              <>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                </span>
-                <span className="text-emerald-400 font-bold tracking-wider uppercase">LIVE CONNECTION</span>
-              </>
-            ) : (
-              <>
-                <span className="relative flex h-2 w-2">
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 animate-pulse" />
-                </span>
-                <span className="text-amber-400 font-bold tracking-wider uppercase">RECONNECTING...</span>
-              </>
-            )}
-          </div>
-
-          {/* Fullscreen Button */}
-          <button
-            onClick={toggleFullscreen}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white transition-all cursor-pointer"
-            title="Toggle Fullscreen (F)"
-          >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            <span className="hidden sm:inline uppercase tracking-wider">{isFullscreen ? "EXIT FULLSCREEN" : "FULLSCREEN"}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">F</span>
-          </button>
-        </div>
+      {/* TOP BAR — ONLY FULLSCREEN CONTROL */}
+      <header className="relative z-20 w-full px-6 py-4 flex items-center justify-end">
+        <button
+          onClick={toggleFullscreen}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white transition-all cursor-pointer font-mono text-xs uppercase tracking-wider shadow-lg backdrop-blur-sm"
+          title="Toggle Fullscreen (or press F)"
+        >
+          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          <span>{isFullscreen ? "EXIT FULLSCREEN" : "FULLSCREEN"}</span>
+        </button>
       </header>
 
       {/* MAIN PRESENTATION ARENA */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 sm:p-10 text-center max-w-7xl mx-auto w-full">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-4 text-center max-w-6xl mx-auto w-full">
 
-        {/* OVERRIDE: SHOW LEADERBOARD */}
+        {/* 1. OVERRIDE: SHOW LEADERBOARD */}
         {showLeaderboard && (
-          <div className="w-full max-w-5xl flex flex-col items-center gap-8 animate-in fade-in zoom-in-95 duration-300">
-            <div className="space-y-2">
-              <div className="px-5 py-2 rounded-full border border-yellow-500/40 bg-yellow-500/10 text-yellow-300 font-mono text-sm tracking-widest uppercase font-bold inline-flex items-center gap-2">
+          <div className="w-full max-w-4xl flex flex-col items-center gap-6 animate-in fade-in zoom-in-95 duration-300">
+            <div className="space-y-1">
+              <div className="px-5 py-1.5 rounded-full border border-yellow-500/40 bg-yellow-500/10 text-yellow-300 font-mono text-xs tracking-widest uppercase font-bold inline-flex items-center gap-2">
                 <Trophy className="w-4 h-4" />
-                OFFICIAL COMPETITION STANDINGS
+                LEADERBOARD
               </div>
-              <h2 className="text-4xl sm:text-6xl font-mono font-black uppercase tracking-wider text-white">
-                Round {currentRound?.roundNumber || 1} Leaderboard
+              <h2 className="text-3xl sm:text-5xl font-mono font-black uppercase tracking-wider text-white">
+                Round 0{currentRound?.roundNumber || 1} Standings
               </h2>
             </div>
 
             {scoredSubmissions.length === 0 ? (
-              <div className="p-12 rounded-3xl bg-black/40 border border-white/10 text-xl font-mono text-white/60 uppercase">
-                Scores being finalized by the official judging panel...
+              <div className="p-12 rounded-3xl bg-black/40 border border-white/10 text-lg font-mono text-white/60 uppercase">
+                Scores being finalized by the judging panel...
               </div>
             ) : (
-              <div className="w-full space-y-3">
+              <div className="w-full space-y-2.5">
                 {scoredSubmissions.slice(0, 8).map((sub, i) => {
                   const medals = ["🥇", "🥈", "🥉"];
                   const medal = medals[i] ?? `#${i + 1}`;
@@ -292,15 +255,15 @@ export default function PublicHostDisplay() {
                   return (
                     <div
                       key={sub.id || sub.teamId}
-                      className="flex items-center justify-between p-5 rounded-2xl bg-black/60 border border-white/10 hover:border-[var(--color-apb-cyan)]/40 transition-all font-mono"
+                      className="flex items-center justify-between p-4 sm:p-5 rounded-2xl bg-black/60 border border-white/10 hover:border-[var(--color-apb-cyan)]/40 transition-all font-mono"
                     >
                       <div className="flex items-center gap-4 sm:gap-6">
                         <span className="text-2xl sm:text-3xl w-10 text-center">{medal}</span>
                         <div className="text-left">
-                          <div className="text-xl sm:text-2xl font-bold text-white flex items-center gap-3">
+                          <div className="text-lg sm:text-2xl font-bold text-white flex items-center gap-3">
                             <span>{getTeamDisplayName(sub.teamId)}</span>
                             {isQualified && (
-                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs uppercase font-bold">
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] uppercase font-bold">
                                 QUALIFIED
                               </span>
                             )}
@@ -313,7 +276,7 @@ export default function PublicHostDisplay() {
                         <div className="text-3xl sm:text-4xl font-black text-[var(--color-apb-cyan)]">
                           {sub.score}
                         </div>
-                        <div className="text-[10px] text-muted-foreground uppercase">FINAL SCORE / 100</div>
+                        <div className="text-[10px] text-muted-foreground uppercase">SCORE / 100</div>
                       </div>
                     </div>
                   );
@@ -323,181 +286,156 @@ export default function PublicHostDisplay() {
           </div>
         )}
 
-        {/* NORMAL STATE 1: AUTHORITATIVE 5-SECOND COUNTDOWN */}
+        {/* 2. AUTHORITATIVE COUNTDOWN */}
         {!showLeaderboard && isStarting && (
-          <div className="flex flex-col items-center justify-center gap-6 animate-in zoom-in-95 duration-200">
+          <div className="flex flex-col items-center justify-center gap-4 animate-in zoom-in-95 duration-200">
+            <div className="text-xl sm:text-2xl font-mono uppercase tracking-widest text-white/80 font-bold">
+              ROUND 0{currentRound?.roundNumber}
+            </div>
+
             <div className="px-6 py-2 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-              ROUND STARTING
+              STARTING IN
             </div>
 
-            <div className="font-mono text-[14rem] sm:text-[18rem] md:text-[22rem] font-black leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-200 to-amber-500 drop-shadow-[0_0_60px_rgba(245,158,11,0.5)]">
-              {countdownRemainingSecs > 0 ? countdownRemainingSecs : "GO!"}
+            <div className="font-mono text-[13rem] sm:text-[18rem] md:text-[22rem] font-black leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-200 to-amber-500 drop-shadow-[0_0_60px_rgba(245,158,11,0.5)] my-2">
+              {countdownRemainingSecs > 0 ? countdownRemainingSecs : "GO"}
             </div>
 
-            <div className="text-2xl sm:text-3xl font-mono uppercase tracking-widest text-white/80">
-              Round {currentRound?.roundNumber}: {currentRound?.title}
+            <div className="text-lg sm:text-xl font-mono uppercase tracking-widest text-[var(--color-apb-cyan)]">
+              {currentRound?.title}
             </div>
           </div>
         )}
 
-        {/* NORMAL STATE 2: WAITING / READY */}
+        {/* 3. WAITING SCREEN */}
         {!showLeaderboard && !isStarting && (displayOverride === "WAITING" || !currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT") && (
-          <div className="flex flex-col items-center justify-center gap-6 max-w-4xl">
-            <div className="px-5 py-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-[var(--color-apb-cyan)] font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
+          <div className="flex flex-col items-center justify-center gap-6 max-w-3xl">
+            <div className="px-6 py-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-[var(--color-apb-cyan)] font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
               <Clock className="w-4 h-4 animate-pulse" />
-              NEXT ROUND
+              READY
             </div>
 
-            <h2 className="text-5xl sm:text-7xl md:text-8xl font-mono font-black uppercase tracking-wider text-white">
-              {currentRound ? `ROUND 0${currentRound.roundNumber}` : "ROUND 01"}
-            </h2>
-
-            <div className="text-3xl sm:text-4xl font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold">
-              {currentRound?.title || "STANDBY FOR INSTRUCTIONS"}
+            <div className="text-3xl sm:text-5xl font-mono uppercase tracking-widest text-white/90 font-black">
+              WAITING FOR START
             </div>
 
-            <p className="text-xl sm:text-2xl text-white/60 font-mono max-w-2xl mt-4 uppercase tracking-wider">
-              WAITING FOR ORGANIZER
-            </p>
-
-            <div className="mt-8 flex items-center gap-3 px-6 py-3 rounded-2xl bg-black/40 border border-white/10 font-mono text-base text-white/80">
-              <span className="text-muted-foreground">Standard Round Duration:</span>
-              <span className="font-bold text-white">
-                {currentRound ? Math.floor(currentRound.durationSeconds / 60) : 20} MINUTES
-              </span>
+            <div className="pt-2">
+              <div className="text-4xl sm:text-6xl font-mono font-black uppercase tracking-wider text-white">
+                {currentRound ? `ROUND 0${currentRound.roundNumber}` : "ROUND 01"}
+              </div>
+              <div className="text-2xl sm:text-3xl font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold mt-2">
+                {currentRound?.title || "QUIZ"}
+              </div>
             </div>
           </div>
         )}
 
-        {/* NORMAL STATE 3: PAUSED */}
+        {/* 4. PAUSED */}
         {!showLeaderboard && !isStarting && currentRound?.status === "PAUSED" && (
-          <div className="flex flex-col items-center justify-center gap-6 max-w-4xl animate-pulse">
+          <div className="flex flex-col items-center justify-center gap-5 max-w-4xl animate-pulse">
             <div className="px-6 py-2 rounded-full border border-amber-500/50 bg-amber-500/20 text-amber-300 font-mono text-base tracking-widest uppercase font-bold flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
               ROUND PAUSED
             </div>
 
-            <div className="text-4xl sm:text-6xl font-mono font-bold uppercase tracking-wider text-white">
-              Round 0{currentRound.roundNumber}: {currentRound.title}
-            </div>
-
-            <div className="my-6">
-              <div className="text-sm font-mono uppercase tracking-widest text-muted-foreground mb-2">TIME REMAINING</div>
-              <div className="font-mono text-8xl sm:text-9xl md:text-[11rem] font-bold tracking-tight text-amber-400 drop-shadow-[0_0_40px_rgba(245,158,11,0.4)]">
+            <div className="my-2">
+              <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">TIME REMAINING</div>
+              <div className="font-mono text-8xl sm:text-9xl md:text-[11rem] font-bold tracking-tight text-amber-400 drop-shadow-[0_0_40px_rgba(245,158,11,0.4)] leading-none">
                 {formatTimer(roundTimeLeft)}
               </div>
             </div>
 
-            <div className="text-2xl font-mono uppercase tracking-widest text-white/70">
-              WAIT FOR ORGANIZER
+            <div className="pt-2">
+              <div className="text-3xl sm:text-4xl font-mono font-bold uppercase tracking-wider text-white">
+                ROUND 0{currentRound.roundNumber}
+              </div>
+              <div className="text-xl sm:text-2xl font-mono uppercase tracking-widest text-white/70 mt-1">
+                {currentRound.title}
+              </div>
             </div>
           </div>
         )}
 
-        {/* NORMAL STATE 4: CLOSED / ENDED */}
+        {/* 5. ROUND COMPLETE */}
         {!showLeaderboard && !isStarting && (currentRound?.status === "CLOSED" || currentRound?.status === "ENDED" || currentRound?.status === "JUDGING" || currentRound?.status === "RESULTS") && (
-          <div className="flex flex-col items-center justify-center gap-6 max-w-4xl">
+          <div className="flex flex-col items-center justify-center gap-5 max-w-3xl">
             <div className="px-6 py-2 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-purple-400" />
               ROUND COMPLETE
             </div>
 
-            <h2 className="text-6xl sm:text-8xl font-mono font-black uppercase tracking-wider text-white">
+            <h2 className="text-5xl sm:text-7xl font-mono font-black uppercase tracking-wider text-white">
               ROUND 0{currentRound.roundNumber}
             </h2>
 
-            <div className="text-2xl sm:text-4xl font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold">
-              {currentRound.title}
-            </div>
-
-            <p className="text-2xl text-white/70 font-mono uppercase tracking-widest mt-4">
+            <p className="text-xl sm:text-2xl text-white/70 font-mono uppercase tracking-widest mt-2">
               WAITING FOR NEXT ROUND
             </p>
           </div>
         )}
 
-        {/* NORMAL STATE 5: LIVE BATTLE SCREEN */}
+        {/* 6. LIVE ROUND (TIMER IS DOMINANT) */}
         {!showLeaderboard && !isStarting && currentRound?.status === "LIVE" && (
-          <div className="w-full flex flex-col items-center justify-center gap-6 max-w-6xl">
+          <div className="w-full flex flex-col items-center justify-center gap-6 max-w-5xl">
             
-            {/* Round & Stage Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <span className="px-4 py-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-mono text-xs sm:text-sm tracking-widest uppercase font-bold flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                LIVE
-              </span>
-
-              <span className="text-sm sm:text-base font-mono uppercase tracking-widest text-white/70 font-bold">
-                ROUND 0{currentRound.roundNumber} • {currentRound.title}
-              </span>
-
-              {isProgressive && (
-                <span className="px-4 py-1.5 rounded-full border border-[var(--color-apb-purple)]/40 bg-[var(--color-apb-purple)]/15 text-purple-300 font-mono text-xs sm:text-sm tracking-widest uppercase font-bold">
-                  STAGE 0{currentStageNum} / 05
-                </span>
-              )}
-            </div>
-
-            {/* PROGRESSIVE CONSTRAINT REVEAL BANNER (Shows upon stage transition) */}
-            {constraintRevealActive && (
-              <div className="w-full max-w-4xl p-6 rounded-3xl bg-gradient-to-r from-purple-950/90 via-black/90 to-purple-950/90 border-2 border-purple-500/60 shadow-[0_0_50px_rgba(168,85,247,0.4)] animate-in zoom-in-95 duration-300">
-                <div className="text-xs font-mono tracking-widest text-purple-300 uppercase font-black mb-1 flex items-center justify-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-400 animate-spin" />
-                  NEW CONSTRAINT UNLOCKED
-                </div>
-                <div className="text-2xl sm:text-4xl font-mono font-bold text-white mt-1">
-                  CONSTRAINT 0{currentStageNum - 1}
-                </div>
-                <div className="text-lg sm:text-2xl font-mono text-purple-200 mt-2 font-semibold">
-                  {activeConstraint?.statement}
-                </div>
-              </div>
-            )}
-
-            {/* PUBLIC CONSTRAINT / STATEMENT CARD */}
-            {activeConstraint && !constraintRevealActive && (
-              <div className="w-full max-w-4xl p-8 sm:p-10 rounded-3xl bg-black/60 border border-white/15 backdrop-blur-md shadow-2xl space-y-4">
-                <div className="text-xs sm:text-sm font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold">
-                  {isProgressive ? (currentStageNum === 1 ? "INITIAL STATEMENT" : `CONSTRAINT 0${currentStageNum - 1}`) : "MISSION OBJECTIVE"}
-                </div>
-                <div className="text-xl sm:text-3xl md:text-4xl font-mono font-bold text-white tracking-wide leading-relaxed">
-                  {activeConstraint.statement}
-                </div>
-              </div>
-            )}
-
-            {/* MASSIVE AUTHORITATIVE TIMER */}
-            <div className="mt-4">
-              <div className="text-xs sm:text-sm font-mono uppercase tracking-widest text-muted-foreground mb-2">
+            {/* DOMINANT HERO TIMER */}
+            <div className="flex flex-col items-center">
+              <div className="text-xs sm:text-sm font-mono uppercase tracking-widest text-white/60 mb-2 font-bold">
                 TIME REMAINING
               </div>
-              <div className={`font-mono text-8xl sm:text-9xl md:text-[12rem] font-black tracking-tight leading-none ${
+              <div className={`font-mono text-8xl sm:text-9xl md:text-[13rem] font-black tracking-tight leading-none ${
                 roundTimeLeft <= 60 
-                  ? "text-red-500 animate-pulse drop-shadow-[0_0_50px_rgba(239,68,68,0.6)]" 
+                  ? "text-red-500 animate-pulse drop-shadow-[0_0_50px_rgba(239,68,68,0.7)]" 
                   : roundTimeLeft <= 180 
-                  ? "text-amber-400 drop-shadow-[0_0_40px_rgba(245,158,11,0.4)]" 
-                  : "text-white drop-shadow-[0_0_40px_rgba(0,240,255,0.3)]"
+                  ? "text-amber-400 drop-shadow-[0_0_40px_rgba(245,158,11,0.5)]" 
+                  : "text-white drop-shadow-[0_0_50px_rgba(0,240,255,0.4)]"
               }`}>
                 {formatTimer(roundTimeLeft)}
               </div>
             </div>
 
-            {/* PROGRESSIVE CONSTRAINT TIMELINE / SUB-TELEMETRY */}
-            {isProgressive && (
-              <div className="flex items-center gap-4 font-mono text-sm text-white/70 mt-2">
-                {currentStageNum < 5 ? (
-                  <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-muted-foreground uppercase text-xs mr-2">NEXT CONSTRAINT:</span>
-                    <span className="text-[var(--color-apb-cyan)] font-bold">
-                      IN {formatTimer(secondsUntilNextStage)}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold uppercase text-xs">
-                    FINAL STAGE ACTIVE
-                  </div>
-                )}
+            {/* ROUND NAME & STAGE (Positioned below dominant timer) */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-2xl sm:text-3xl md:text-4xl font-mono font-black uppercase tracking-wider text-white">
+                ROUND 0{currentRound.roundNumber}
+              </div>
+              <div className="text-lg sm:text-xl font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold">
+                {currentRound.title}
+              </div>
+
+              {isProgressive && (
+                <div className="mt-1 px-4 py-1.5 rounded-full border border-purple-500/40 bg-purple-500/15 text-purple-300 font-mono text-xs sm:text-sm tracking-widest uppercase font-bold">
+                  STAGE 0{currentStageNum} / 05
+                </div>
+              )}
+            </div>
+
+            {/* PROGRESSIVE CONSTRAINT REVEAL BANNER (Shows upon stage transition) */}
+            {constraintRevealActive && (
+              <div className="w-full max-w-3xl p-6 rounded-2xl bg-gradient-to-r from-purple-950/90 via-black/95 to-purple-950/90 border-2 border-purple-500/60 shadow-[0_0_50px_rgba(168,85,247,0.4)] animate-in zoom-in-95 duration-300">
+                <div className="text-xs font-mono tracking-widest text-purple-300 uppercase font-black mb-1 flex items-center justify-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-400 animate-spin" />
+                  NEW CONSTRAINT UNLOCKED
+                </div>
+                <div className="text-2xl sm:text-3xl font-mono font-bold text-white mt-1">
+                  CONSTRAINT 0{currentStageNum - 1}
+                </div>
+                <div className="text-base sm:text-xl font-mono text-purple-200 mt-2 font-semibold">
+                  {activeConstraint?.statement}
+                </div>
+              </div>
+            )}
+
+            {/* PROGRESSIVE CONSTRAINT STATEMENT (Only for progressive rounds) */}
+            {isProgressive && activeConstraint && !constraintRevealActive && activeConstraint.statement && (
+              <div className="w-full max-w-3xl p-6 sm:p-8 rounded-2xl bg-black/60 border border-white/15 backdrop-blur-md shadow-2xl space-y-2">
+                <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold">
+                  {currentStageNum === 1 ? "INITIAL STATEMENT" : `CONSTRAINT 0${currentStageNum - 1}`}
+                </div>
+                <div className="text-lg sm:text-2xl font-mono font-bold text-white tracking-wide leading-relaxed">
+                  {activeConstraint.statement}
+                </div>
               </div>
             )}
 
@@ -506,16 +444,8 @@ export default function PublicHostDisplay() {
 
       </main>
 
-      {/* FOOTER */}
-      <footer className="relative z-10 w-full px-8 py-5 border-t border-white/10 bg-black/40 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-apb-cyan)]" />
-          <span className="text-white/80 font-bold uppercase tracking-widest">SJBIT • BENGALURU</span>
-        </div>
-        <div className="tracking-wider uppercase text-[11px] opacity-70">
-          OFFICIAL LIVE CONDUCTION ARENA • PRESENTATION SCREEN
-        </div>
-      </footer>
+      {/* Subtle bottom buffer */}
+      <div className="h-6" />
     </div>
   );
 }

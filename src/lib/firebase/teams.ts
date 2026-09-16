@@ -170,3 +170,84 @@ export async function clearAllSessions() {
   return snapshot.size;
 }
 
+export async function deleteTeam(teamId: string) {
+  const normalized = normalizeTeamId(teamId);
+  await deleteDoc(doc(db, "teams", normalized));
+  await killTeamSessions(normalized);
+  await logAudit("TEAM_DELETED", "ORGANIZER", { teamId: normalized });
+}
+
+export async function seedTestTeamRange({
+  prefix = "APB",
+  separator = "",
+  startNum = 1,
+  endNum = 20,
+  padLength = 3,
+  accessCode = "TEST2026",
+}: {
+  prefix?: string;
+  separator?: string;
+  startNum: number;
+  endNum: number;
+  padLength?: number;
+  accessCode: string;
+}) {
+  const normalizedCode = accessCode.trim().toUpperCase();
+  if (!normalizedCode) throw new Error("Access ID / Access Code is required.");
+  if (endNum < startNum) throw new Error("End number must be greater than or equal to start number.");
+  if (endNum - startNum > 300) throw new Error("Maximum 300 test teams per batch.");
+
+  let added = 0;
+  const now = Date.now();
+
+  for (let n = startNum; n <= endNum; n++) {
+    const formattedNum = String(n).padStart(padLength, "0");
+    const teamId = `${prefix.trim().toUpperCase()}${separator}${formattedNum}`;
+    const teamRef = doc(db, "teams", teamId);
+
+    const testTeam: Team = {
+      teamId,
+      displayName: `Test Team ${formattedNum}`,
+      member1: `Pilot 1 (${formattedNum})`,
+      member1Email: `pilot1_${formattedNum}@test.internal`,
+      member2: `Pilot 2 (${formattedNum})`,
+      member2Email: `pilot2_${formattedNum}@test.internal`,
+      active: true,
+      eligibleRounds: [],
+      accessCode: normalizedCode,
+      source: "TEST",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await setDoc(teamRef, testTeam, { merge: true });
+    added++;
+  }
+
+  await logAudit("TEST_TEAMS_RANGE_SEEDED", "ORGANIZER", {
+    metadata: {
+      range: `${prefix}${separator}${String(startNum).padStart(padLength, "0")}..${prefix}${separator}${String(endNum).padStart(padLength, "0")}`,
+      count: added,
+      accessCode: normalizedCode,
+    },
+  });
+
+  return added;
+}
+
+export async function clearTestTeams() {
+  const q = query(collection(db, "teams"), where("source", "==", "TEST"));
+  const snapshot = await getDocs(q);
+  const deletePromises = snapshot.docs.map(async (d) => {
+    await deleteDoc(d.ref);
+    await killTeamSessions(d.id);
+  });
+  await Promise.all(deletePromises);
+
+  await logAudit("TEST_TEAMS_CLEARED", "ORGANIZER", {
+    metadata: { count: snapshot.size },
+  });
+
+  return snapshot.size;
+}
+

@@ -10,12 +10,14 @@ import { useTeams } from "@/lib/firebase/teams";
 import {
   useJudges,
   addJudge,
+  createJudgeAccount,
   toggleJudgeStatus,
   removeJudge,
   useJudgeAssignments,
   assignJudge,
   unassignJudge,
   autoDistributeAssignments,
+  autoDistributeTeamsToJudges,
   useJudgeScores,
   overrideJudgeScore,
 } from "@/lib/firebase/judging";
@@ -479,15 +481,19 @@ export default function OrganizerJudging() {
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Add Judge Modal state
+  // Section 40: Assignment Filters
+  const [assignmentFilter, setAssignmentFilter] = useState<"ALL" | "ASSIGNED" | "UNASSIGNED" | "JUDGED" | "PENDING">("ALL");
+
+  // Add Judge Modal state (§33)
   const [addJudgeOpen, setAddJudgeOpen] = useState(false);
-  const [judgeUid, setJudgeUid] = useState("");
   const [judgeName, setJudgeName] = useState("");
   const [judgeEmail, setJudgeEmail] = useState("");
+  const [judgePassword, setJudgePassword] = useState("");
   const [addingJudge, setAddingJudge] = useState(false);
 
-  // Auto assign state
-  const [judgesPerSub, setJudgesPerSub] = useState(1);
+  // Auto assign modal state (§37-39)
+  const [autoDistributeOpen, setAutoDistributeOpen] = useState(false);
+  const [teamsPerJudgeInput, setTeamsPerJudgeInput] = useState<number>(20);
   const [autoAssigning, setAutoAssigning] = useState(false);
 
   const availableRounds = rounds;
@@ -501,6 +507,10 @@ export default function OrganizerJudging() {
   const getTeamName = (teamId: string) =>
     teams.find((t) => t.teamId === teamId)?.displayName ?? teamId;
 
+  // Online Presence Reconciliation (§35)
+  const isJudgeOnline = (j: Judge) => !!(j.isOnline && (Date.now() - (j.lastHeartbeat || 0) < 90000));
+  const onlineJudgesCount = judges.filter(isJudgeOnline).length;
+
   const scoredCount = submissions.filter((s) => {
     const hasSubScore = scores.some((sc) => sc.submissionId === s.id && sc.status === "FINAL");
     return s.score !== undefined || hasSubScore;
@@ -510,47 +520,66 @@ export default function OrganizerJudging() {
 
   const handleAddJudgeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!judgeUid.trim() || !judgeName.trim()) {
-      alert("Please provide both Judge UID and Display Name.");
+    if (!judgeName.trim() || !judgeEmail.trim() || !judgePassword.trim()) {
+      alert("Please provide Judge Name, Email, and Password.");
       return;
     }
     setAddingJudge(true);
     try {
-      await addJudge({
-        uid: judgeUid.trim(),
+      await createJudgeAccount({
         displayName: judgeName.trim(),
         email: judgeEmail.trim(),
+        password: judgePassword.trim(),
       });
-      setJudgeUid("");
       setJudgeName("");
       setJudgeEmail("");
+      setJudgePassword("");
       setAddJudgeOpen(false);
+      alert(`Judge account created successfully for ${judgeEmail}!`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add judge.");
+      alert(err instanceof Error ? err.message : "Failed to create judge account.");
     } finally {
       setAddingJudge(false);
     }
   };
 
   const handleAutoAssign = async () => {
-    if (!selectedRound || submissions.length === 0) return;
+    if (!selectedRound) return;
+    const targetTeamIds = teams.map((t) => t.teamId);
+    if (targetTeamIds.length === 0) {
+      alert("No registered teams found to distribute.");
+      return;
+    }
     setAutoAssigning(true);
     try {
-      const assigned = await autoDistributeAssignments(
-        submissions,
+      const assigned = await autoDistributeTeamsToJudges({
+        teamIds: targetTeamIds,
+        roundId: selectedRound.id,
         judges,
-        judgesPerSub,
-        "currentEvent",
-        "ORGANIZER"
-      );
-      alert(`Successfully distributed ${assigned} assignments.`);
+        teamsPerJudge: teamsPerJudgeInput > 0 ? teamsPerJudgeInput : undefined,
+      });
+      alert(`Successfully distributed ${assigned} team assignments across active judges.`);
+      setAutoDistributeOpen(false);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Auto-assignment failed.");
+      alert(err instanceof Error ? err.message : "Auto-distribution failed.");
     } finally {
       setAutoAssigning(false);
     }
   };
+
+  // Filtered submissions list (§40)
+  const filteredSubmissions = submissions.filter((sub) => {
+    const subAssigns = assignments.filter((a) => a.submissionId === sub.id || a.teamId === sub.teamId);
+    const subScore = scores.find((s) => s.submissionId === sub.id);
+    const isJudged = sub.score !== undefined || subScore?.status === "FINAL";
+
+    if (assignmentFilter === "ASSIGNED") return subAssigns.length > 0;
+    if (assignmentFilter === "UNASSIGNED") return subAssigns.length === 0;
+    if (assignmentFilter === "JUDGED") return isJudged;
+    if (assignmentFilter === "PENDING") return !isJudged;
+    return true;
+  });
 
   if (roundsLoading || judgesLoading) {
     return (
@@ -594,28 +623,110 @@ export default function OrganizerJudging() {
         </div>
       </header>
 
-      {/* Section 13: Judging Overview Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+      {/* Section 48: Judging Overview Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
         <APBCard className="p-5 bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
           <div className="text-xs uppercase text-muted-foreground font-bold">TOTAL SUBMISSIONS</div>
-          <div className="text-4xl font-black text-white mt-1">{totalSubmissions}</div>
+          <div className="text-3xl sm:text-4xl font-black text-white mt-1">{totalSubmissions}</div>
           <div className="text-[11px] text-muted-foreground mt-1">Official received submissions</div>
         </APBCard>
 
         <APBCard className="p-5 bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
           <div className="text-xs uppercase text-muted-foreground font-bold">JUDGED</div>
-          <div className="text-4xl font-black text-[var(--color-apb-cyan)] mt-1">{scoredCount}</div>
+          <div className="text-3xl sm:text-4xl font-black text-[var(--color-apb-cyan)] mt-1">{scoredCount}</div>
           <div className="text-[11px] text-muted-foreground mt-1">
             {totalSubmissions > 0 ? `${Math.round((scoredCount / totalSubmissions) * 100)}% complete` : "0%"}
           </div>
         </APBCard>
 
         <APBCard className="p-5 bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
-          <div className="text-xs uppercase text-muted-foreground font-bold">REMAINING</div>
-          <div className="text-4xl font-black text-amber-400 mt-1">{remainingCount}</div>
+          <div className="text-xs uppercase text-muted-foreground font-bold">PENDING</div>
+          <div className="text-3xl sm:text-4xl font-black text-amber-400 mt-1">{remainingCount}</div>
           <div className="text-[11px] text-muted-foreground mt-1">Awaiting judge evaluation</div>
         </APBCard>
+
+        <APBCard className="p-5 bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
+          <div className="text-xs uppercase text-muted-foreground font-bold">JUDGES ONLINE</div>
+          <div className="text-3xl sm:text-4xl font-black text-emerald-400 mt-1">
+            {onlineJudgesCount} / {judges.length}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-1">Live active presence in /judge</div>
+        </APBCard>
       </div>
+
+      {/* Section 46 & 48: Judge Assignment & Progress Panel */}
+      <APBCard className="p-6 space-y-4 border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div>
+            <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold mb-0.5">
+              JUDGING PROGRESS & PRESENCE (§46)
+            </div>
+            <h3 className="text-lg font-mono font-bold text-white">Evaluator Workload & Live Status</h3>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <APBButton
+              glow
+              size="sm"
+              onClick={() => setAutoDistributeOpen(true)}
+              disabled={judges.length === 0}
+              className="font-mono text-xs uppercase"
+            >
+              <Shuffle className="w-3.5 h-3.5 mr-1.5" />
+              Auto Distribute (§37)
+            </APBButton>
+          </div>
+        </div>
+
+        {judges.length === 0 ? (
+          <div className="text-xs font-mono text-muted-foreground py-2">
+            No judge accounts created yet. Switch to the Judges tab to add evaluators.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-mono text-xs">
+              <thead className="text-muted-foreground uppercase border-b border-white/10">
+                <tr>
+                  <th className="pb-2">Judge</th>
+                  <th className="pb-2">Assigned</th>
+                  <th className="pb-2">Completed</th>
+                  <th className="pb-2 text-right">Live Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {judges.map((j) => {
+                  const isOnline = isJudgeOnline(j);
+                  const judgeAssigns = assignments.filter((a) => a.judgeId === j.uid);
+                  const completedJudge = scores.filter((s) => s.judgeId === j.uid && s.status === "FINAL").length;
+
+                  return (
+                    <tr key={j.uid} className="hover:bg-white/[0.02]">
+                      <td className="py-2.5 font-bold text-white flex items-center gap-2">
+                        <span>{j.displayName}</span>
+                        <span className="text-[10px] text-muted-foreground font-normal">({j.email})</span>
+                      </td>
+                      <td className="py-2.5 text-white/80">{judgeAssigns.length} teams</td>
+                      <td className="py-2.5 text-[var(--color-apb-cyan)] font-bold">{completedJudge} evaluated</td>
+                      <td className="py-2.5 text-right">
+                        {isOnline ? (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            ONLINE
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/10 text-[10px]">
+                            ○ OFFLINE
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </APBCard>
 
       {/* TAB 1: SUBMISSIONS & MULTI-JUDGE SCORING */}
       {activeTab === "SUBMISSIONS" && (
@@ -641,67 +752,43 @@ export default function OrganizerJudging() {
                 ))}
               </div>
 
-              {/* Progress & Quick Auto-Assign Toolbar */}
-              {selectedRound && (
-                <div className="p-4 rounded-lg bg-[var(--color-apb-surface)] border border-[var(--color-apb-surface-border)] flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex-1 space-y-1.5">
-                    <div className="flex justify-between text-xs font-mono text-white">
-                      <span>Judging Progress</span>
-                      <span className="text-[var(--color-apb-cyan)] font-bold">
-                        {scoredCount}/{totalSubmissions} evaluated
-                      </span>
-                    </div>
-                    <div className="h-2 bg-black/50 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[var(--color-apb-cyan)] rounded-full transition-all"
-                        style={{
-                          width: totalSubmissions > 0 ? `${(scoredCount / totalSubmissions) * 100}%` : "0%",
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Auto Assign Controls */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                      <span>Judges/team:</span>
-                      <select
-                        value={judgesPerSub}
-                        onChange={(e) => setJudgesPerSub(parseInt(e.target.value) || 1)}
-                        className="bg-black/60 border border-[var(--color-apb-surface-border)] rounded px-2 py-1 text-white"
-                      >
-                        <option value={1}>1</option>
-                        <option value={2}>2</option>
-                        <option value={3}>3</option>
-                      </select>
-                    </div>
-
-                    <APBButton
-                      size="sm"
-                      variant="outline"
-                      onClick={handleAutoAssign}
-                      disabled={autoAssigning || totalSubmissions === 0 || judges.length === 0}
-                      className="text-xs h-8"
+              {/* Section 40: Assignment Filters Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+                  <span className="text-muted-foreground uppercase mr-1">Filter Submissions:</span>
+                  {(["ALL", "ASSIGNED", "UNASSIGNED", "JUDGED", "PENDING"] as const).map((flt) => (
+                    <button
+                      key={flt}
+                      type="button"
+                      onClick={() => setAssignmentFilter(flt)}
+                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                        assignmentFilter === flt
+                          ? "bg-[var(--color-apb-cyan)] text-black shadow-md shadow-cyan-950/40"
+                          : "bg-white/5 text-muted-foreground hover:text-white"
+                      }`}
                     >
-                      <Shuffle className="w-3.5 h-3.5 mr-1 text-[var(--color-apb-cyan)]" />
-                      {autoAssigning ? "Assigning..." : "Auto-Distribute"}
-                    </APBButton>
-                  </div>
+                      {flt}
+                    </button>
+                  ))}
                 </div>
-              )}
+
+                <div className="text-xs font-mono text-muted-foreground">
+                  Showing {filteredSubmissions.length} of {submissions.length} submission(s)
+                </div>
+              </div>
 
               {/* Submissions List */}
               {subsLoading ? (
                 <div className="flex justify-center p-12">
                   <Loader2 className="w-8 h-8 animate-spin text-[var(--color-apb-cyan)]" />
                 </div>
-              ) : submissions.length === 0 ? (
+              ) : filteredSubmissions.length === 0 ? (
                 <div className="h-32 border border-dashed border-[var(--color-apb-surface-border)] rounded-lg flex items-center justify-center text-muted-foreground font-mono">
-                  No submissions found for this round.
+                  No submissions found matching filter: {assignmentFilter}.
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {submissions.map((sub) => (
+                  {filteredSubmissions.map((sub) => (
                     <SubmissionJudgingCard
                       key={sub.id}
                       submission={sub}
@@ -727,7 +814,7 @@ export default function OrganizerJudging() {
               Official Judge Accounts ({judges.length})
             </span>
 
-            <APBButton size="sm" glow onClick={() => setAddJudgeOpen(true)} className="text-xs">
+            <APBButton size="sm" glow onClick={() => setAddJudgeOpen(true)} className="text-xs font-mono">
               <Plus className="w-3.5 h-3.5 mr-1" /> Add Judge Account
             </APBButton>
           </div>
@@ -735,115 +822,183 @@ export default function OrganizerJudging() {
           {judges.length === 0 ? (
             <div className="h-48 border border-dashed border-[var(--color-apb-surface-border)] rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground font-mono">
               <Scale className="w-8 h-8 opacity-40" />
-              <span>No judges authorized yet. Click \"Add Judge Account\" to authorize.</span>
+              <span>No judges authorized yet. Click "Add Judge Account" to create evaluator credentials.</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {judges.map((j) => (
-                <APBCard key={j.uid} className="p-4 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-mono font-bold text-white text-sm">{j.displayName}</h4>
-                      <div className="text-xs font-mono text-muted-foreground">{j.email || "No email"}</div>
-                      <div className="text-[10px] font-mono text-muted-foreground mt-0.5 truncate max-w-[200px]">
-                        UID: {j.uid}
+              {judges.map((j) => {
+                const isOnline = isJudgeOnline(j);
+                return (
+                  <APBCard key={j.uid} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-mono font-bold text-white text-sm flex items-center gap-2">
+                          <span>{j.displayName}</span>
+                          {isOnline ? (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Online" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-slate-600" title="Offline" />
+                          )}
+                        </h4>
+                        <div className="text-xs font-mono text-muted-foreground">{j.email}</div>
                       </div>
+
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase ${
+                          j.active ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                        }`}
+                      >
+                        {j.active ? "Active" : "Inactive"}
+                      </span>
                     </div>
 
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase ${
-                        j.active ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
-                      }`}
-                    >
-                      {j.active ? "Active" : "Inactive"}
-                    </span>
-                  </div>
+                    <div className="pt-2 border-t border-[var(--color-apb-surface-border)] flex items-center justify-between">
+                      <APBButton
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleJudgeStatus(j.uid, !j.active)}
+                        className="text-xs h-7 font-mono"
+                      >
+                        {j.active ? "Deactivate" : "Activate"}
+                      </APBButton>
 
-                  <div className="pt-2 border-t border-[var(--color-apb-surface-border)] flex items-center justify-between">
-                    <APBButton
-                      size="sm"
-                      variant="outline"
-                      onClick={() => toggleJudgeStatus(j.uid, !j.active)}
-                      className="text-xs h-7"
-                    >
-                      {j.active ? "Deactivate" : "Activate"}
-                    </APBButton>
-
-                    <button
-                      onClick={() => {
-                        if (confirm(`Remove judge ${j.displayName}?`)) {
-                          removeJudge(j.uid);
-                        }
-                      }}
-                      className="text-muted-foreground hover:text-red-400 transition-colors p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </APBCard>
-              ))}
+                      <button
+                        onClick={() => {
+                          if (confirm(`Remove judge ${j.displayName}?`)) {
+                            removeJudge(j.uid);
+                          }
+                        }}
+                        className="text-muted-foreground hover:text-red-400 transition-colors p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </APBCard>
+                );
+              })}
             </div>
           )}
-
-          {/* Add Judge Modal */}
-          <Dialog open={addJudgeOpen} onOpenChange={setAddJudgeOpen}>
-            <DialogContent className="sm:max-w-[425px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
-              <DialogHeader>
-                <DialogTitle className="text-lg font-mono uppercase text-white flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-[var(--color-apb-cyan)]" /> Add Official Judge
-                </DialogTitle>
-              </DialogHeader>
-
-              <form onSubmit={handleAddJudgeSubmit} className="space-y-4 py-2 font-mono text-xs">
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground uppercase">Judge UID *</Label>
-                  <Input
-                    placeholder="Firebase Auth UID"
-                    value={judgeUid}
-                    onChange={(e) => setJudgeUid(e.target.value)}
-                    required
-                    className="font-mono text-xs"
-                  />
-                  <span className="text-[10px] text-muted-foreground block">
-                    Copy from Firebase Authentication console.
-                  </span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground uppercase">Display Name *</Label>
-                  <Input
-                    placeholder="Judge Full Name"
-                    value={judgeName}
-                    onChange={(e) => setJudgeName(e.target.value)}
-                    required
-                    className="font-mono text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-muted-foreground uppercase">Judge Email</Label>
-                  <Input
-                    type="email"
-                    placeholder="judge@apb.com"
-                    value={judgeEmail}
-                    onChange={(e) => setJudgeEmail(e.target.value)}
-                    className="font-mono text-xs"
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-3">
-                  <APBButton type="button" variant="outline" className="flex-1" onClick={() => setAddJudgeOpen(false)}>
-                    Cancel
-                  </APBButton>
-                  <APBButton type="submit" glow className="flex-1" disabled={addingJudge}>
-                    {addingJudge ? "Authorizing..." : "Authorize Judge"}
-                  </APBButton>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
         </div>
       )}
+
+      {/* Auto Distribute Confirmation Modal (§37-39) */}
+      <Dialog open={autoDistributeOpen} onOpenChange={setAutoDistributeOpen}>
+        <DialogContent className="sm:max-w-[460px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] font-mono">
+          <DialogHeader>
+            <DialogTitle className="text-lg uppercase text-white flex items-center gap-2">
+              <Shuffle className="w-5 h-5 text-[var(--color-apb-cyan)]" /> Auto Distribute Teams
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3 text-xs">
+            <div className="p-3.5 rounded-lg bg-amber-950/30 border border-amber-500/30 text-amber-300">
+              <div className="font-bold uppercase mb-1 flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4" /> Assignment Safety Check (§39)
+              </div>
+              <p>
+                <strong>{teams.length}</strong> registered teams will be distributed across <strong>{judges.filter(j => j.active).length}</strong> active judges. Current assignments for this round will be replaced.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground uppercase block">Teams Per Judge (Optional Limit)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={200}
+                value={teamsPerJudgeInput}
+                onChange={(e) => setTeamsPerJudgeInput(parseInt(e.target.value) || 0)}
+                placeholder="e.g. 20 (or leave 0 for balanced split)"
+                className="font-mono text-xs bg-black/60"
+              />
+              <span className="text-[11px] text-muted-foreground block">
+                If blank or 0, teams are divided evenly with fair remainder distribution (e.g. 100 teams / 3 judges = 34, 33, 33).
+              </span>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <APBButton
+                type="button"
+                variant="outline"
+                className="flex-1 text-xs"
+                onClick={() => setAutoDistributeOpen(false)}
+              >
+                Cancel
+              </APBButton>
+              <APBButton
+                type="button"
+                glow
+                className="flex-1 text-xs uppercase"
+                onClick={handleAutoAssign}
+                disabled={autoAssigning}
+              >
+                {autoAssigning ? "Distributing..." : "Confirm Distribution"}
+              </APBButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Judge Modal (§33) */}
+      <Dialog open={addJudgeOpen} onOpenChange={setAddJudgeOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] font-mono">
+          <DialogHeader>
+            <DialogTitle className="text-lg uppercase text-white flex items-center gap-2">
+              <Plus className="w-5 h-5 text-[var(--color-apb-cyan)]" /> Add Official Judge
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleAddJudgeSubmit} className="space-y-4 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground uppercase">Judge Name *</Label>
+              <Input
+                placeholder="e.g. Rahul"
+                value={judgeName}
+                onChange={(e) => setJudgeName(e.target.value)}
+                required
+                className="font-mono text-xs bg-black/60"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground uppercase">Email Address *</Label>
+              <Input
+                type="email"
+                placeholder="rahul@example.com"
+                value={judgeEmail}
+                onChange={(e) => setJudgeEmail(e.target.value)}
+                required
+                className="font-mono text-xs bg-black/60"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground uppercase">Password *</Label>
+              <Input
+                type="password"
+                placeholder="Minimum 6 characters"
+                value={judgePassword}
+                onChange={(e) => setJudgePassword(e.target.value)}
+                required
+                minLength={6}
+                className="font-mono text-xs bg-black/60"
+              />
+              <span className="text-[10px] text-muted-foreground block">
+                Securely sets evaluator login credential in Firebase Auth.
+              </span>
+            </div>
+
+            <div className="flex gap-2 pt-3">
+              <APBButton type="button" variant="outline" className="flex-1" onClick={() => setAddJudgeOpen(false)}>
+                Cancel
+              </APBButton>
+              <APBButton type="submit" glow className="flex-1" disabled={addingJudge}>
+                {addingJudge ? "Creating..." : "Create Judge"}
+              </APBButton>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

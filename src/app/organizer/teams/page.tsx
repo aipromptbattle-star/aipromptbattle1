@@ -7,10 +7,10 @@ import { StatusBadge } from "@/components/apb/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { AddTeamDialog } from "@/components/apb/AddTeamDialog";
 import { EditTeamDialog } from "@/components/apb/EditTeamDialog";
-import { useTeams, useSessions, toggleTeamStatus, killTeamSessions, addTeam } from "@/lib/firebase/teams";
+import { useTeams, useSessions, toggleTeamStatus, killTeamSessions, addTeam, seedTestTeamRange, clearTestTeams, deleteTeam } from "@/lib/firebase/teams";
 import { useEventState, updateEventSettings } from "@/lib/firebase/events";
 import { Team } from "@/lib/firebase/schema";
-import { Loader2, Laptop, MoreVertical, Copy, Check, KeyRound, Sparkles, Sheet, Save } from "lucide-react";
+import { Loader2, Laptop, MoreVertical, Copy, Check, KeyRound, Sparkles, Sheet, Save, Trash2, Hash, ShieldAlert } from "lucide-react";
 import { ActiveSessionsModal } from "@/components/apb/ActiveSessionsModal";
 import {
   DropdownMenu,
@@ -30,7 +30,6 @@ export default function OrganizerTeams() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
   const [copiedTeamId, setCopiedTeamId] = useState<string | null>(null);
-  const [seeding, setSeeding] = useState(false);
   const [sheetUrl, setSheetUrl] = useState("");
   const [savingSheet, setSavingSheet] = useState(false);
   const [sheetSavedMsg, setSheetSavedMsg] = useState(false);
@@ -55,65 +54,58 @@ export default function OrganizerTeams() {
     }
   };
 
-  const handleSeed4Teams = async () => {
-    setSeeding(true);
-    const testTeams = [
-      {
-        teamId: "APB-101",
-        displayName: "Neural Sparks",
-        accessCode: "ALPHA1",
-        member1: "Alex Chen",
-        member1Email: "alex@example.com",
-        member2: "Sam Rivera",
-        member2Email: "sam@example.com",
-        source: "MANUAL" as const,
-      },
-      {
-        teamId: "APB-102",
-        displayName: "Prompt Crafters",
-        accessCode: "BETA22",
-        member1: "Maya Patel",
-        member1Email: "maya@example.com",
-        member2: "Jordan Lee",
-        member2Email: "jordan@example.com",
-        source: "MANUAL" as const,
-      },
-      {
-        teamId: "APB-103",
-        displayName: "Cyber Synapse",
-        accessCode: "GAMMA3",
-        member1: "Liam Davis",
-        member1Email: "liam@example.com",
-        member2: "Zoe Taylor",
-        member2Email: "zoe@example.com",
-        source: "MANUAL" as const,
-      },
-      {
-        teamId: "APB-104",
-        displayName: "Quantum Logic",
-        accessCode: "DELTA4",
-        member1: "Noah Wilson",
-        member1Email: "noah@example.com",
-        member2: "Emma Brown",
-        member2Email: "emma@example.com",
-        source: "MANUAL" as const,
-      },
-    ];
+  // Test Team Range Generator State (§User Testing Request)
+  const [rangePrefix, setRangePrefix] = useState("APB");
+  const [rangeSeparator, setRangeSeparator] = useState("");
+  const [rangeStart, setRangeStart] = useState(1);
+  const [rangeEnd, setRangeEnd] = useState(20);
+  const [rangeAccessCode, setRangeAccessCode] = useState("TEST2026");
+  const [rangeGenerating, setRangeGenerating] = useState(false);
+  const [rangeClearing, setRangeClearing] = useState(false);
+  const [rangeMsg, setRangeMsg] = useState<string | null>(null);
 
+  const handleGenerateTestRange = async () => {
+    if (!rangeAccessCode.trim()) {
+      alert("Please specify a shared Access ID / Access Code for the test teams.");
+      return;
+    }
+    if (rangeEnd < rangeStart) {
+      alert("End range must be greater than or equal to Start range.");
+      return;
+    }
+    setRangeGenerating(true);
+    setRangeMsg(null);
     try {
-      let added = 0;
-      for (const t of testTeams) {
-        if (!teams.some(existing => existing.teamId === t.teamId)) {
-          await addTeam(t);
-          added++;
-        }
-      }
-      alert(`Successfully added ${added} test team(s) with access codes!`);
+      const count = await seedTestTeamRange({
+        prefix: rangePrefix,
+        separator: rangeSeparator,
+        startNum: rangeStart,
+        endNum: rangeEnd,
+        padLength: 3,
+        accessCode: rangeAccessCode,
+      });
+      setRangeMsg(`✓ Successfully generated ${count} test teams (${rangePrefix}${rangeSeparator}${String(rangeStart).padStart(3, "0")} to ${rangePrefix}${rangeSeparator}${String(rangeEnd).padStart(3, "0")}) with Access ID: ${rangeAccessCode.toUpperCase()}`);
+      setTimeout(() => setRangeMsg(null), 6000);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to seed teams.";
-      alert("Seeding error: " + msg);
+      alert(e instanceof Error ? e.message : "Failed to generate test teams.");
     } finally {
-      setSeeding(false);
+      setRangeGenerating(false);
+    }
+  };
+
+  const handleClearTestTeams = async () => {
+    if (!window.confirm("Delete ALL dummy test teams (source === 'TEST')? Real teams imported or manually created will NOT be touched.")) {
+      return;
+    }
+    setRangeClearing(true);
+    try {
+      const count = await clearTestTeams();
+      setRangeMsg(`Cleared ${count} dummy test team(s).`);
+      setTimeout(() => setRangeMsg(null), 4000);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Failed to clear test teams.");
+    } finally {
+      setRangeClearing(false);
     }
   };
 
@@ -132,16 +124,6 @@ export default function OrganizerTeams() {
         <div className="flex flex-wrap items-center gap-3">
           <APBButton
             variant="outline"
-            onClick={handleSeed4Teams}
-            disabled={seeding}
-            className="font-mono text-xs text-[var(--color-apb-cyan)] border-[var(--color-apb-cyan)]/40 hover:bg-[var(--color-apb-cyan)]/10 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            {seeding ? "Creating Teams..." : "Seed 4 Test Teams"}
-          </APBButton>
-
-          <APBButton
-            variant="outline"
             onClick={() => setSessionsModalOpen(true)}
             className="font-mono text-xs text-amber-400 border-amber-500/40 hover:bg-amber-500/10"
           >
@@ -151,6 +133,121 @@ export default function OrganizerTeams() {
           <AddTeamDialog />
         </div>
       </header>
+
+      {/* User Requested: Range Test Teams Generator (Isolated from Actual Event) */}
+      <APBCard className="p-6 space-y-4 border-amber-500/30 bg-gradient-to-r from-amber-950/20 via-black/40 to-amber-950/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-500/20 pb-3">
+          <div className="space-y-0.5">
+            <div className="text-xs font-mono uppercase tracking-widest text-amber-400 font-bold flex items-center gap-2">
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+              TEST DRILL & LOAD TESTING TOOL (NOT FOR ACTUAL EVENT)
+            </div>
+            <h3 className="text-lg font-mono font-bold text-white">Batch Test Teams Generator</h3>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <APBButton
+              variant="outline"
+              size="sm"
+              onClick={handleClearTestTeams}
+              disabled={rangeClearing || rangeGenerating}
+              className="font-mono text-xs text-rose-400 border-rose-500/40 hover:bg-rose-500/10"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              {rangeClearing ? "Clearing..." : "Delete Test Teams"}
+            </APBButton>
+          </div>
+        </div>
+
+        <p className="text-xs font-mono text-muted-foreground">
+          Generates dummy test teams in any numerical range (e.g. <strong>{rangePrefix}{rangeSeparator}001</strong> to <strong>{rangePrefix}{rangeSeparator}{String(rangeEnd).padStart(3, "0")}</strong>) with a shared Access ID for testing login and load. Actual event teams are loaded via Google Sheets or manual entry with unique credentials.
+        </p>
+
+        {rangeMsg && (
+          <div className="p-3 rounded-lg font-mono text-xs bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 animate-in fade-in duration-200">
+            {rangeMsg}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 font-mono pt-1">
+          <div>
+            <label className="text-[11px] uppercase text-muted-foreground block mb-1">Prefix</label>
+            <input
+              type="text"
+              value={rangePrefix}
+              onChange={(e) => setRangePrefix(e.target.value.toUpperCase())}
+              placeholder="APB"
+              className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white uppercase focus:outline-none focus:border-[var(--color-apb-cyan)]"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] uppercase text-muted-foreground block mb-1">Separator</label>
+            <select
+              value={rangeSeparator}
+              onChange={(e) => setRangeSeparator(e.target.value)}
+              className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
+            >
+              <option value="">None (APB001)</option>
+              <option value="-">Hyphen (APB-001)</option>
+              <option value="_">Underscore (APB_001)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[11px] uppercase text-muted-foreground block mb-1">Start Number</label>
+            <input
+              type="number"
+              min={1}
+              value={rangeStart}
+              onChange={(e) => setRangeStart(parseInt(e.target.value) || 1)}
+              className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] uppercase text-muted-foreground block mb-1">End Number</label>
+            <input
+              type="number"
+              min={rangeStart}
+              max={500}
+              value={rangeEnd}
+              onChange={(e) => setRangeEnd(parseInt(e.target.value) || rangeStart)}
+              className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] uppercase text-muted-foreground block mb-1 text-[var(--color-apb-cyan)] font-bold">
+              Shared Access ID
+            </label>
+            <input
+              type="text"
+              value={rangeAccessCode}
+              onChange={(e) => setRangeAccessCode(e.target.value.toUpperCase())}
+              placeholder="e.g. TEST2026"
+              className="w-full h-9 px-3 rounded bg-black/60 border border-[var(--color-apb-cyan)]/50 text-xs text-[var(--color-apb-cyan)] font-bold uppercase focus:outline-none focus:border-[var(--color-apb-cyan)]"
+            />
+          </div>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-white/10">
+          <div className="text-xs font-mono text-muted-foreground">
+            Preview Range: <span className="text-white font-bold">{rangePrefix}{rangeSeparator}{String(rangeStart).padStart(3, "0")}</span> through <span className="text-white font-bold">{rangePrefix}{rangeSeparator}{String(rangeEnd).padStart(3, "0")}</span> ({Math.max(0, rangeEnd - rangeStart + 1)} teams)
+          </div>
+
+          <APBButton
+            glow
+            size="sm"
+            onClick={handleGenerateTestRange}
+            disabled={rangeGenerating || rangeClearing}
+            className="font-mono text-xs uppercase tracking-wider"
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+            {rangeGenerating ? "Generating..." : `Generate ${Math.max(0, rangeEnd - rangeStart + 1)} Test Teams`}
+          </APBButton>
+        </div>
+      </APBCard>
 
       {/* Section 8: Google Sheets Registration Configuration */}
       <APBCard className="p-6 space-y-4 border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]">
