@@ -11,8 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { APBButton } from "./APBButton";
-import { Terminal, Plus } from "lucide-react";
-import { addTeam } from "@/lib/firebase/teams";
+import { Terminal, Plus, RotateCw } from "lucide-react";
+import { addTeam, generateAccessCode } from "@/lib/firebase/teams";
 
 export function AddTeamDialog() {
   const [open, setOpen] = useState(false);
@@ -22,11 +22,20 @@ export function AddTeamDialog() {
   const [formData, setFormData] = useState({
     teamId: "",
     displayName: "",
+    accessCode: "",
     member1: "",
     member1Email: "",
     member2: "",
     member2Email: ""
   });
+
+  // Generate initial access code when dialog opens
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (newOpen && !formData.accessCode) {
+      setFormData(prev => ({ ...prev, accessCode: generateAccessCode() }));
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
@@ -47,6 +56,7 @@ export function AddTeamDialog() {
       await addTeam({
         teamId: formData.teamId,
         displayName: formData.displayName,
+        accessCode: formData.accessCode.trim().toUpperCase() || generateAccessCode(),
         member1: formData.member1,
         member1Email: formData.member1Email,
         member2: formData.member2,
@@ -54,7 +64,7 @@ export function AddTeamDialog() {
         source: "MANUAL",
       });
       // Success: Reset form and close
-      setFormData({ teamId: "", displayName: "", member1: "", member1Email: "", member2: "", member2Email: "" });
+      setFormData({ teamId: "", displayName: "", accessCode: "", member1: "", member1Email: "", member2: "", member2Email: "" });
       setOpen(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create team.";
@@ -70,7 +80,7 @@ export function AddTeamDialog() {
         <Plus className="w-4 h-4 mr-2" />
         Add Team
       </APBButton>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-[425px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-mono uppercase tracking-widest text-white flex items-center gap-2">
@@ -109,6 +119,30 @@ export function AddTeamDialog() {
               disabled={loading}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="accessCode">Access Code (Passcode)</Label>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, accessCode: generateAccessCode() }))}
+                className="text-[11px] font-mono text-[var(--color-apb-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <RotateCw className="w-3 h-3" /> Auto-Generate
+              </button>
+            </div>
+            <Input 
+              id="accessCode" 
+              placeholder="e.g. 74X92A" 
+              value={formData.accessCode}
+              onChange={handleChange}
+              className="font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold bg-black/50"
+              disabled={loading}
+            />
+            <p className="text-[10px] text-muted-foreground font-mono">
+              6-character secret pass needed for participant login
+            </p>
           </div>
           
           <div className="grid grid-cols-2 gap-4">

@@ -16,6 +16,7 @@ import { auth, db, googleProvider } from "@/lib/firebase/config";
 
 function LoginContent() {
   const [teamId, setTeamId] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   
@@ -62,7 +63,7 @@ function LoginContent() {
 
     const EVENT_ID = "currentEvent";
     
-    const result = await joinTeam(teamId, EVENT_ID);
+    const result = await joinTeam(teamId, EVENT_ID, accessCode);
     if (result.success) {
       router.push("/team");
     } else {
@@ -141,8 +142,8 @@ function LoginContent() {
             </Alert>
           )}
 
-          <form onSubmit={handleParticipantLogin} className="space-y-5">
-            <div className="space-y-2 text-left">
+          <form onSubmit={handleParticipantLogin} className="space-y-4">
+            <div className="space-y-1.5 text-left">
               <Label htmlFor="teamId" className="text-muted-foreground uppercase tracking-widest text-[10px] font-mono block text-center">
                 TEAM ID
               </Label>
@@ -151,13 +152,31 @@ function LoginContent() {
                 placeholder="APB-____"
                 value={teamId}
                 onChange={(e) => setTeamId(e.target.value)}
-                className="font-mono text-xl h-14 uppercase text-center tracking-widest bg-black/50 border-[var(--color-apb-surface-border)] text-[var(--color-apb-cyan)] placeholder:text-slate-600 focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)]"
+                className="font-mono text-xl h-12 uppercase text-center tracking-widest bg-black/50 border-[var(--color-apb-surface-border)] text-[var(--color-apb-cyan)] placeholder:text-slate-600 focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)]"
                 disabled={loading}
                 autoFocus
               />
             </div>
 
-            <APBButton glow type="submit" className="w-full h-12 text-sm font-mono tracking-widest uppercase" disabled={loading}>
+            <div className="space-y-1.5 text-left">
+              <Label htmlFor="accessCode" className="text-muted-foreground uppercase tracking-widest text-[10px] font-mono block text-center">
+                ACCESS CODE
+              </Label>
+              <Input
+                id="accessCode"
+                placeholder="••••••"
+                type="text"
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                className="font-mono text-lg h-12 uppercase text-center tracking-[0.25em] bg-black/50 border-[var(--color-apb-surface-border)] text-white placeholder:text-slate-600 focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)]"
+                disabled={loading}
+              />
+              <p className="text-[10px] font-mono text-muted-foreground/60 text-center">
+                6-character access pass assigned to your team
+              </p>
+            </div>
+
+            <APBButton glow type="submit" className="w-full h-12 text-sm font-mono tracking-widest uppercase mt-2" disabled={loading}>
               {loading ? "AUTHENTICATING..." : "[ ENTER EVENT ]"}
             </APBButton>
           </form>

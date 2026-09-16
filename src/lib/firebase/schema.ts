@@ -22,6 +22,7 @@ export interface Team {
   active: boolean;
   eligibleRounds: number[]; // e.g., [1, 2]
   registrationStatus?: "PENDING" | "CONFIRMED" | "CANCELLED";
+  accessCode?: string; // Team access code / PIN for entry
   source?: "MANUAL" | "GOOGLE_SHEETS" | {
     type: "MANUAL" | "GOOGLE_SHEETS";
     sourceId?: string | null;

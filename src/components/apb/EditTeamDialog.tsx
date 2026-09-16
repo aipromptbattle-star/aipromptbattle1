@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { APBButton } from "./APBButton";
-import { Terminal, Edit } from "lucide-react";
-import { updateTeam } from "@/lib/firebase/teams";
+import { Terminal, Edit, RotateCw } from "lucide-react";
+import { updateTeam, generateAccessCode } from "@/lib/firebase/teams";
 import { Team } from "@/lib/firebase/schema";
 
 interface EditTeamDialogProps {
@@ -26,6 +26,7 @@ export function EditTeamDialog({ team, open, onOpenChange }: EditTeamDialogProps
 
   const [formData, setFormData] = useState({
     displayName: "",
+    accessCode: "",
     member1: "",
     member1Email: "",
     member2: "",
@@ -37,6 +38,7 @@ export function EditTeamDialog({ team, open, onOpenChange }: EditTeamDialogProps
     if (team) {
       setFormData({
         displayName: team.displayName || "",
+        accessCode: team.accessCode || "",
         member1: team.member1 || "",
         member1Email: team.member1Email || "",
         member2: team.member2 || "",
@@ -71,6 +73,7 @@ export function EditTeamDialog({ team, open, onOpenChange }: EditTeamDialogProps
 
       await updateTeam(team.teamId, {
         displayName: formData.displayName.trim(),
+        accessCode: formData.accessCode.trim().toUpperCase() || generateAccessCode(),
         member1: formData.member1.trim(),
         member1Email: formData.member1Email.trim(),
         member2: formData.member2.trim(),
@@ -116,6 +119,27 @@ export function EditTeamDialog({ team, open, onOpenChange }: EditTeamDialogProps
               disabled={loading}
               className="font-mono text-sm"
               required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="accessCode" className="text-xs font-mono uppercase text-muted-foreground">Access Code (Passcode)</Label>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, accessCode: generateAccessCode() }))}
+                className="text-[10px] font-mono text-[var(--color-apb-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <RotateCw className="w-3 h-3" /> Auto-Generate
+              </button>
+            </div>
+            <Input 
+              id="accessCode" 
+              value={formData.accessCode}
+              onChange={handleChange}
+              disabled={loading}
+              className="font-mono text-sm uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold bg-black/50"
+              placeholder="e.g. 74X92A"
             />
           </div>
           

@@ -10,10 +10,10 @@ import { ConfirmationDialog } from "@/components/apb/ConfirmationDialog";
 import { EditRoundDialog } from "@/components/apb/EditRoundDialog";
 import { RoundTemplateBuilder } from "@/components/apb/RoundTemplateBuilder";
 import { ParticipantPreviewModal } from "@/components/apb/ParticipantPreviewModal";
-import { useRounds, createRound } from "@/lib/firebase/rounds";
+import { useRounds, createRound, deleteRound } from "@/lib/firebase/rounds";
 import { startRound, pauseRound, resumeRound, endRound, extendTime, reopenRound, resetRound } from "@/lib/firebase/events";
 import { Round } from "@/lib/firebase/schema";
-import { Loader2, Plus, Play, Pause, Square, TimerReset, Edit, RotateCcw, RefreshCw, Clock, Sparkles, Eye } from "lucide-react";
+import { Loader2, Plus, Play, Pause, Square, TimerReset, Edit, RotateCcw, RefreshCw, Clock, Sparkles, Eye, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -353,6 +353,25 @@ export default function OrganizerRounds() {
                     <Edit className="w-4 h-4 mr-2" /> Edit
                   </APBButton>
                 )}
+
+                <div className="ml-auto">
+                  <APBButton
+                    size="sm"
+                    variant="outline"
+                    disabled={round.status === "LIVE"}
+                    onClick={() => showConfirm({
+                      title: "Delete Round",
+                      description: `Permanently delete Round ${round.roundNumber}: "${round.title}"? This round configuration will be completely removed.`,
+                      confirmText: "DELETE ROUND",
+                      destructive: true,
+                      action: () => deleteRound(round.id),
+                    })}
+                    className="border-red-500/40 text-red-400 hover:bg-red-500/20 disabled:opacity-30 font-mono text-xs"
+                    title={round.status === "LIVE" ? "End the round before deleting." : "Delete this round"}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+                  </APBButton>
+                </div>
               </div>
 
               {round.challengeInstructions && (

@@ -16,7 +16,7 @@ interface TeamSessionContextType {
   sessionId: string | null;
   loading: boolean;
   setMemberRole: (role: MemberRole | null) => void;
-  joinTeam: (teamId: string, eventId: string) => Promise<{ success: boolean; error?: string }>;
+  joinTeam: (teamId: string, eventId: string, accessCode?: string) => Promise<{ success: boolean; error?: string }>;
   leaveTeam: () => void;
 }
 
@@ -104,7 +104,7 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const joinTeam = async (targetTeamId: string, targetEventId: string) => {
+  const joinTeam = async (targetTeamId: string, targetEventId: string, accessCode?: string) => {
     if (!anonUser) return { success: false, error: "Not connected to system." };
     
     // Check if team exists and is active
@@ -120,6 +120,18 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
       const tData = teamSnap.data() as Team;
       if (!tData.active) {
         return { success: false, error: "TEAM INACTIVE" };
+      }
+
+      // Check Access Code if configured on the team
+      if (tData.accessCode && tData.accessCode.trim()) {
+        const expectedCode = tData.accessCode.trim().toUpperCase();
+        const providedCode = (accessCode || "").trim().toUpperCase();
+        if (!providedCode || providedCode !== expectedCode) {
+          return { 
+            success: false, 
+            error: "INVALID ACCESS CODE: Incorrect access code for this team." 
+          };
+        }
       }
 
       // Check active sessions limit (Max 2 active sessions per team)

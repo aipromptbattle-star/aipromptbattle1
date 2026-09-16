@@ -7,9 +7,9 @@ import { StatusBadge } from "@/components/apb/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { AddTeamDialog } from "@/components/apb/AddTeamDialog";
 import { EditTeamDialog } from "@/components/apb/EditTeamDialog";
-import { useTeams, useSessions, toggleTeamStatus, killTeamSessions } from "@/lib/firebase/teams";
+import { useTeams, useSessions, toggleTeamStatus, killTeamSessions, addTeam } from "@/lib/firebase/teams";
 import { Team } from "@/lib/firebase/schema";
-import { Loader2, Laptop, MoreVertical } from "lucide-react";
+import { Loader2, Laptop, MoreVertical, Copy, Check, KeyRound, Sparkles } from "lucide-react";
 import { ActiveSessionsModal } from "@/components/apb/ActiveSessionsModal";
 import {
   DropdownMenu,
@@ -27,6 +27,70 @@ export default function OrganizerTeams() {
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
+  const [copiedTeamId, setCopiedTeamId] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+
+  const handleSeed4Teams = async () => {
+    setSeeding(true);
+    const testTeams = [
+      {
+        teamId: "APB-101",
+        displayName: "Neural Sparks",
+        accessCode: "ALPHA1",
+        member1: "Alex Chen",
+        member1Email: "alex@example.com",
+        member2: "Sam Rivera",
+        member2Email: "sam@example.com",
+        source: "MANUAL" as const,
+      },
+      {
+        teamId: "APB-102",
+        displayName: "Prompt Crafters",
+        accessCode: "BETA22",
+        member1: "Maya Patel",
+        member1Email: "maya@example.com",
+        member2: "Jordan Lee",
+        member2Email: "jordan@example.com",
+        source: "MANUAL" as const,
+      },
+      {
+        teamId: "APB-103",
+        displayName: "Cyber Synapse",
+        accessCode: "GAMMA3",
+        member1: "Liam Davis",
+        member1Email: "liam@example.com",
+        member2: "Zoe Taylor",
+        member2Email: "zoe@example.com",
+        source: "MANUAL" as const,
+      },
+      {
+        teamId: "APB-104",
+        displayName: "Quantum Logic",
+        accessCode: "DELTA4",
+        member1: "Noah Wilson",
+        member1Email: "noah@example.com",
+        member2: "Emma Brown",
+        member2Email: "emma@example.com",
+        source: "MANUAL" as const,
+      },
+    ];
+
+    try {
+      let added = 0;
+      for (const t of testTeams) {
+        if (!teams.some(existing => existing.teamId === t.teamId)) {
+          await addTeam(t);
+          added++;
+        }
+      }
+      alert(`Successfully added ${added} test team(s) with access codes!`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to seed teams.";
+      alert("Seeding error: " + msg);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const filteredTeams = teams.filter((team) => 
     team.teamId.toLowerCase().includes(search.toLowerCase()) || 
@@ -41,6 +105,16 @@ export default function OrganizerTeams() {
           <p className="text-muted-foreground">Manage participants and session limits.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <APBButton
+            variant="outline"
+            onClick={handleSeed4Teams}
+            disabled={seeding}
+            className="font-mono text-xs text-[var(--color-apb-cyan)] border-[var(--color-apb-cyan)]/40 hover:bg-[var(--color-apb-cyan)]/10 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            {seeding ? "Creating Teams..." : "Seed 4 Test Teams"}
+          </APBButton>
+
           <APBButton
             variant="outline"
             onClick={() => setSessionsModalOpen(true)}
@@ -90,6 +164,7 @@ export default function OrganizerTeams() {
               <tr>
                 <th className="px-4 py-3 font-medium">Team ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Access Code</th>
                 <th className="px-4 py-3 font-medium hidden md:table-cell">Members</th>
                 <th className="px-4 py-3 font-medium">Sessions</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -99,13 +174,13 @@ export default function OrganizerTeams() {
             <tbody className="divide-y divide-[var(--color-apb-surface-border)]">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center">
+                  <td colSpan={7} className="px-4 py-8 text-center">
                     <Loader2 className="w-6 h-6 animate-spin text-[var(--color-apb-cyan)] mx-auto" />
                   </td>
                 </tr>
               ) : filteredTeams.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                     No teams found.
                   </td>
                 </tr>
@@ -116,6 +191,33 @@ export default function OrganizerTeams() {
                     <tr key={team.teamId} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-4 py-3 font-mono font-bold text-[var(--color-apb-cyan)]">{team.teamId}</td>
                       <td className="px-4 py-3 text-white">{team.displayName}</td>
+                      <td className="px-4 py-3 font-mono">
+                        {team.accessCode ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded bg-black/60 border border-[var(--color-apb-surface-border)] text-[var(--color-apb-cyan)] font-bold tracking-widest text-xs">
+                              {team.accessCode}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(team.accessCode || "");
+                                setCopiedTeamId(team.teamId);
+                                setTimeout(() => setCopiedTeamId(null), 2000);
+                              }}
+                              title="Copy Access Code"
+                              className="p-1 rounded text-muted-foreground hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                              {copiedTeamId === team.teamId ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs italic">Default</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                         {team.member1} {team.member2 && `& ${team.member2}`}
                       </td>

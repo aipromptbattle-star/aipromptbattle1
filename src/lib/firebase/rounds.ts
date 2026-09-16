@@ -6,6 +6,7 @@ import {
   onSnapshot, 
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   orderBy,
   getDocs,
@@ -68,4 +69,10 @@ export async function updateRound(roundId: string, updates: Partial<Omit<Round, 
     roundId,
     metadata: updates as Record<string, unknown>,
   });
+}
+
+export async function deleteRound(roundId: string) {
+  const roundRef = doc(db, "rounds", roundId);
+  await deleteDoc(roundRef);
+  await logAudit("ROUND_DELETED", "ORGANIZER", { roundId });
 }

@@ -18,6 +18,16 @@ import { Team, Session, AuditLog } from "./schema";
 // Normalizes Team ID
 export const normalizeTeamId = (id: string) => id.trim().toUpperCase();
 
+// Generates a clean 6-character access code for team login
+export const generateAccessCode = (): string => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
 // Helper to log audit events
 export const logAudit = async (action: string, actor: string, details: Partial<AuditLog> = {}) => {
   const logRef = doc(collection(db, "auditLogs"));
@@ -50,6 +60,7 @@ export async function addTeam(teamData: Omit<Team, "teamId" | "createdAt" | "upd
       member2Email: teamData.member2Email?.trim() || "",
       active: true,
       eligibleRounds: [], // Start with no eligible rounds, update later
+      accessCode: teamData.accessCode?.trim().toUpperCase() || generateAccessCode(),
       source: teamData.source || "MANUAL",
       sourceId: teamData.sourceId || null,
       createdAt: Date.now(),
