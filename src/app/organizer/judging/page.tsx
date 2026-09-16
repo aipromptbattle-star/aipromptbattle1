@@ -883,25 +883,37 @@ export default function OrganizerJudging() {
 
       {/* Auto Distribute Confirmation Modal (§37-39) */}
       <Dialog open={autoDistributeOpen} onOpenChange={setAutoDistributeOpen}>
-        <DialogContent className="sm:max-w-[460px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] font-mono">
+        <DialogContent className="sm:max-w-[480px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] font-mono">
           <DialogHeader>
             <DialogTitle className="text-lg uppercase text-white flex items-center gap-2">
-              <Shuffle className="w-5 h-5 text-[var(--color-apb-cyan)]" /> Auto Distribute Teams
+              <Shuffle className="w-5 h-5 text-[var(--color-apb-cyan)]" /> Auto Distribute Teams to Judges
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-3 text-xs">
-            <div className="p-3.5 rounded-lg bg-amber-950/30 border border-amber-500/30 text-amber-300">
-              <div className="font-bold uppercase mb-1 flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4" /> Assignment Safety Check (§39)
+            {/* Assignment Safety Warning */}
+            {assignments.length > 0 ? (
+              <div className="p-3.5 rounded-lg bg-rose-950/40 border border-rose-500/40 text-rose-300 space-y-1">
+                <div className="font-bold uppercase flex items-center gap-1.5 text-xs text-rose-400">
+                  <ShieldAlert className="w-4 h-4" /> CURRENT ASSIGNMENTS EXIST
+                </div>
+                <p className="text-[11px]">
+                  <strong>{assignments.length}</strong> team assignment(s) currently exist for this round. Applying a new distribution will replace current assignments.
+                </p>
               </div>
-              <p>
-                <strong>{teams.length}</strong> registered teams will be distributed across <strong>{judges.filter(j => j.active).length}</strong> active judges. Current assignments for this round will be replaced.
-              </p>
-            </div>
+            ) : (
+              <div className="p-3.5 rounded-lg bg-amber-950/30 border border-amber-500/30 text-amber-300">
+                <div className="font-bold uppercase mb-1 flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4" /> Assignment Safety Check
+                </div>
+                <p>
+                  <strong>{teams.length}</strong> registered teams will be distributed across <strong>{judges.filter((j) => j.active).length}</strong> active judges.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1.5">
-              <Label className="text-muted-foreground uppercase block">Teams Per Judge (Optional Limit)</Label>
+              <Label className="text-muted-foreground uppercase block">Teams Per Judge (Optional Capacity Limit)</Label>
               <Input
                 type="number"
                 min={1}
@@ -912,9 +924,64 @@ export default function OrganizerJudging() {
                 className="font-mono text-xs bg-black/60"
               />
               <span className="text-[11px] text-muted-foreground block">
-                If blank or 0, teams are divided evenly with fair remainder distribution (e.g. 100 teams / 3 judges = 34, 33, 33).
+                If 0, teams are divided evenly with fair remainder distribution (e.g. 100 teams / 3 judges = 34, 33, 33).
               </span>
             </div>
+
+            {/* Live Distribution Preview Table */}
+            {(() => {
+              const activeJs = judges.filter((j) => j.active);
+              if (activeJs.length === 0) return null;
+              const totalTms = teams.length;
+              const numJ = activeJs.length;
+              let caps: number[] = [];
+              if (teamsPerJudgeInput > 0) {
+                caps = activeJs.map(() => teamsPerJudgeInput);
+              } else {
+                const base = Math.floor(totalTms / numJ);
+                let rem = totalTms % numJ;
+                caps = activeJs.map(() => {
+                  let c = base;
+                  if (rem > 0) {
+                    c += 1;
+                    rem--;
+                  }
+                  return c;
+                });
+              }
+
+              let tmIdx = 0;
+              let totalAssigned = 0;
+              const previewRows = activeJs.map((j, idx) => {
+                const limit = caps[idx] || 0;
+                let count = 0;
+                for (let c = 0; c < limit && tmIdx < totalTms; c++) {
+                  count++;
+                  tmIdx++;
+                }
+                totalAssigned += count;
+                return { name: j.displayName, count };
+              });
+
+              return (
+                <div className="space-y-2 p-3 rounded-lg bg-black/50 border border-[var(--color-apb-surface-border)]">
+                  <div className="font-bold text-white uppercase text-[11px] flex justify-between border-b border-[var(--color-apb-surface-border)] pb-1.5">
+                    <span>Distribution Preview</span>
+                    <span className="text-[var(--color-apb-cyan)]">
+                      Capacity: {totalAssigned} / {totalTms} Teams
+                    </span>
+                  </div>
+                  <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                    {previewRows.map((row, idx) => (
+                      <div key={idx} className="flex justify-between text-[11px] text-slate-300 font-mono">
+                        <span>Judge 0{idx + 1} ({row.name})</span>
+                        <span className="font-bold text-white">{row.count} Teams</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="flex gap-2 pt-2">
               <APBButton

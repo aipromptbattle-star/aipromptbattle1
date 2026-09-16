@@ -64,6 +64,20 @@ export default function JudgeSubmissionWorkspace() {
         const subData = { id: subSnap.id, ...subSnap.data() } as Submission;
         setSubmission(subData);
 
+        // Verify judge assignment authorization
+        const assignmentTeamId = `${subData.eventId}_${subData.roundId}_${subData.teamId}_${user.uid}`;
+        const assignmentSubId = `${subData.eventId}_${subData.roundId}_${subData.id}_${user.uid}`;
+        const [assignTeamSnap, assignSubSnap] = await Promise.all([
+          getDoc(doc(db, "judgeAssignments", assignmentTeamId)).catch(() => ({ exists: () => false })),
+          getDoc(doc(db, "judgeAssignments", assignmentSubId)).catch(() => ({ exists: () => false })),
+        ]);
+
+        if (!assignTeamSnap.exists() && !assignSubSnap.exists()) {
+          alert("ACCESS DENIED: This team submission is not assigned to your judge account.");
+          router.push("/judge");
+          return;
+        }
+
         // Fetch team display name
         if (subData.teamId) {
           try {
