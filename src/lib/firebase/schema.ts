@@ -13,7 +13,9 @@ export interface Event {
   activeDisplayLayout?: number; // 1 to 10
   displayOverride?: DisplayMode;
   displayImageUrl?: string;
-  displayCustomText?: string;
+  displayHeading?: string;
+  displaySubheading?: string;
+  displayBody?: string;
   googleSheetsUrl?: string;
   createdAt: number;
   updatedAt: number;

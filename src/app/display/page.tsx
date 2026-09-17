@@ -246,9 +246,23 @@ export default function PublicHostDisplay() {
         {/* CUSTOM TEXT / RULES MODE */}
         {displayOverride === "TEXT" && (
           <div className="w-full max-w-5xl flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-300 p-8 sm:p-12 rounded-3xl bg-black/60 border border-white/10 backdrop-blur-md shadow-2xl">
-            {eventState?.displayCustomText ? (
-              <div className="whitespace-pre-wrap text-left w-full text-xl sm:text-2xl md:text-3xl font-mono text-white tracking-wide leading-relaxed overflow-y-auto max-h-[75vh]">
-                {eventState.displayCustomText}
+            {(eventState?.displayHeading || eventState?.displaySubheading || eventState?.displayBody) ? (
+              <div className="w-full space-y-6 overflow-y-auto max-h-[75vh]">
+                {eventState.displayHeading && (
+                  <h1 className="text-5xl sm:text-7xl font-mono font-black uppercase text-white tracking-wider text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                    {eventState.displayHeading}
+                  </h1>
+                )}
+                {eventState.displaySubheading && (
+                  <h2 className="text-2xl sm:text-3xl font-mono uppercase text-[var(--color-apb-cyan)] tracking-widest text-center font-bold">
+                    {eventState.displaySubheading}
+                  </h2>
+                )}
+                {eventState.displayBody && (
+                  <div className="text-xl sm:text-2xl md:text-3xl font-mono text-white/90 tracking-wide leading-relaxed text-left whitespace-pre-wrap mt-8 pt-6 border-t border-white/10">
+                    {eventState.displayBody}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-muted-foreground font-mono uppercase tracking-widest">NO TEXT PROVIDED</div>

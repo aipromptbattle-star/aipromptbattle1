@@ -33,12 +33,16 @@ export default function OrganizerDisplayControl() {
   const activeMode: DisplayMode = eventState?.displayOverride || "AUTOMATIC";
   
   const [imageUrl, setImageUrl] = useState(eventState?.displayImageUrl || "");
-  const [customText, setCustomText] = useState(eventState?.displayCustomText || "");
+  const [heading, setHeading] = useState(eventState?.displayHeading || "");
+  const [subheading, setSubheading] = useState(eventState?.displaySubheading || "");
+  const [body, setBody] = useState(eventState?.displayBody || "");
 
   useEffect(() => {
     if (eventState) {
       setImageUrl(eventState.displayImageUrl || "");
-      setCustomText(eventState.displayCustomText || "");
+      setHeading(eventState.displayHeading || "");
+      setSubheading(eventState.displaySubheading || "");
+      setBody(eventState.displayBody || "");
     }
   }, [eventState]);
 
@@ -64,7 +68,9 @@ export default function OrganizerDisplayControl() {
     try {
       await updateEventSettings({ 
         displayImageUrl: imageUrl,
-        displayCustomText: customText
+        displayHeading: heading,
+        displaySubheading: subheading,
+        displayBody: body
       });
       showNotification("Display content updated successfully.");
     } catch (e: unknown) {
@@ -283,12 +289,32 @@ export default function OrganizerDisplayControl() {
             />
           </div>
           <div>
-            <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">CUSTOM TEXT / RULES</label>
+            <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">HEADING</label>
+            <input 
+              type="text" 
+              value={heading} 
+              onChange={e => setHeading(e.target.value)} 
+              placeholder="e.g. ROUND RULES"
+              className="w-full bg-black/50 border border-[var(--color-apb-surface-border)] rounded-md px-3 py-2 text-sm text-white font-mono font-bold uppercase tracking-wider"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">SUBHEADING</label>
+            <input 
+              type="text" 
+              value={subheading} 
+              onChange={e => setSubheading(e.target.value)} 
+              placeholder="e.g. General Guidelines"
+              className="w-full bg-black/50 border border-[var(--color-apb-surface-border)] rounded-md px-3 py-2 text-sm text-[var(--color-apb-cyan)] font-mono uppercase tracking-widest"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">BODY TEXT</label>
             <textarea 
-              value={customText} 
-              onChange={e => setCustomText(e.target.value)} 
-              placeholder="Enter text to display..."
-              className="w-full bg-black/50 border border-[var(--color-apb-surface-border)] rounded-md px-3 py-2 text-sm text-white font-mono min-h-[100px]"
+              value={body} 
+              onChange={e => setBody(e.target.value)} 
+              placeholder="Enter main content..."
+              className="w-full bg-black/50 border border-[var(--color-apb-surface-border)] rounded-md px-3 py-2 text-sm text-white font-mono min-h-[120px] whitespace-pre-wrap"
             />
           </div>
           <APBButton onClick={handleUpdateContent} disabled={saving} size="sm">
@@ -321,22 +347,28 @@ export default function OrganizerDisplayControl() {
                 </div>
               </div>
             ) : activeMode === "IMAGE" ? (
-              <div className="space-y-2">
-                <div className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-bold">
-                  CUSTOM IMAGE DISPLAY
-                </div>
-                <div className="text-sm font-mono text-white/50">
-                  {eventState?.displayImageUrl ? "Image is projected" : "No image provided"}
-                </div>
+              <div className="flex flex-col items-center justify-center h-full w-full p-2">
+                {imageUrl ? (
+                  <img src={imageUrl} alt="Preview" className="max-w-full max-h-[200px] object-contain rounded-md" />
+                ) : (
+                  <div className="text-xs font-mono text-cyan-400/50 uppercase tracking-widest font-bold">
+                    NO IMAGE URL PROVIDED
+                  </div>
+                )}
               </div>
             ) : activeMode === "TEXT" ? (
-              <div className="space-y-2">
-                <div className="text-xs font-mono text-pink-400 uppercase tracking-widest font-bold">
-                  CUSTOM TEXT / RULES
-                </div>
-                <div className="text-sm font-mono text-white/50">
-                  {eventState?.displayCustomText ? "Text is projected" : "No text provided"}
-                </div>
+              <div className="flex flex-col items-center justify-center h-full w-full p-4 overflow-hidden">
+                {(heading || subheading || body) ? (
+                  <div className="w-full space-y-2">
+                    {heading && <div className="text-xl font-black uppercase text-white tracking-wider truncate">{heading}</div>}
+                    {subheading && <div className="text-sm font-bold uppercase text-[var(--color-apb-cyan)] tracking-widest truncate">{subheading}</div>}
+                    {body && <div className="text-xs text-white/70 line-clamp-3 text-left whitespace-pre-wrap">{body}</div>}
+                  </div>
+                ) : (
+                  <div className="text-xs font-mono text-pink-400/50 uppercase tracking-widest font-bold">
+                    NO TEXT PROVIDED
+                  </div>
+                )}
               </div>
             ) : activeMode === "WAITING" || (!currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT") ? (
               <div className="space-y-2">
