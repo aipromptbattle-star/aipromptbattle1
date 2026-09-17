@@ -123,7 +123,7 @@ service cloud.firestore {
     match /drafts/{draftId} {
       // READ: organizer sees all; participant sees only their team's draft.
       allow read: if isOrganizer()
-                  || (hasActiveSession() && resource.data.teamId == myTeamId());
+                  || (hasActiveSession() && (resource == null || resource.data.teamId == myTeamId()));
 
       // CREATE: participant may create a draft only for their own team.
       allow create: if hasActiveSession()
@@ -135,7 +135,7 @@ service cloud.firestore {
       // UPDATE: participant may update only their own team's draft.
       // Ownership anchor fields (teamId, eventId, roundId) are immutable.
       allow update: if hasActiveSession()
-                    && resource.data.teamId == myTeamId()
+                    && resource != null && resource.data.teamId == myTeamId()
                     && request.resource.data.teamId  == resource.data.teamId
                     && request.resource.data.eventId == resource.data.eventId
                     && request.resource.data.roundId == resource.data.roundId;
@@ -158,7 +158,7 @@ service cloud.firestore {
     //   (write-once) and the transaction's own round-status / deadline checks.
     match /teamRoundState/{stateId} {
       allow read: if isOrganizer()
-                  || (hasActiveSession() && resource.data.teamId == myTeamId());
+                  || (hasActiveSession() && (resource == null || resource.data.teamId == myTeamId()));
 
       allow create: if hasActiveSession()
                     && request.resource.data.teamId == myTeamId()
@@ -167,7 +167,7 @@ service cloud.firestore {
 
       // Participant may update only their own state; cannot change ownership fields.
       allow update: if hasActiveSession()
-                    && resource.data.teamId == myTeamId()
+                    && resource != null && resource.data.teamId == myTeamId()
                     && request.resource.data.teamId  == resource.data.teamId
                     && request.resource.data.eventId == resource.data.eventId
                     && request.resource.data.roundId == resource.data.roundId;
@@ -184,7 +184,7 @@ service cloud.firestore {
       // READ: organizer sees all; active judges see all; participant sees only their own team's submission.
       allow read: if isOrganizer()
                   || isJudge()
-                  || (hasActiveSession() && resource.data.teamId == myTeamId());
+                  || (hasActiveSession() && (resource == null || resource.data.teamId == myTeamId()));
 
       // CREATE: participant may create exactly one submission for their own team.
       // Status must be "FINAL"; ownership fields must match session.
@@ -238,8 +238,9 @@ service cloud.firestore {
     // Organizers publish and manage; participants may read their own team qualification.
     match /qualifications/{qualificationId} {
       allow read: if isOrganizer()
-                  || (hasActiveSession() && resource.data.teamId == myTeamId());
+                  || (hasActiveSession() && (resource == null || resource.data.teamId == myTeamId()));
       allow write: if isOrganizer();
     }
   }
 }
+

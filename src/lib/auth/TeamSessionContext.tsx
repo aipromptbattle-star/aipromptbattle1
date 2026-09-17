@@ -54,19 +54,20 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
           setMemberRoleState(storedRole);
         }
       });
-      
-      // Fetch team data
-      getDoc(doc(db, "teams", storedTeamId)).then((snap) => {
-        if (snap.exists()) {
-          setTeamData(snap.data() as Team);
-        }
-      }).catch(console.error);
     }
 
     // Ensure we have an anonymous Firebase auth session for read access
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setAnonUser(user);
+        if (storedTeamId) {
+          // Fetch team data once auth is restored
+          getDoc(doc(db, "teams", storedTeamId)).then((snap) => {
+            if (snap.exists()) {
+              setTeamData(snap.data() as Team);
+            }
+          }).catch(console.error);
+        }
       } else {
         // Do NOT automatically sign in anonymously. Wait for joinTeam.
         setAnonUser(null);
