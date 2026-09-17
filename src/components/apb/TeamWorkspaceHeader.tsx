@@ -12,9 +12,7 @@ interface TeamWorkspaceHeaderProps {
   teamId: string;
   teamDisplayName?: string;
   round: Round;
-  memberRole: MemberRole | null;
   saveStatus: "SAVED" | "SAVING" | "OFFLINE" | "ERROR";
-  onSwitchRole: () => void;
   onLeave: () => void;
 }
 
@@ -22,9 +20,7 @@ export function TeamWorkspaceHeader({
   teamId,
   teamDisplayName,
   round,
-  memberRole,
   saveStatus,
-  onSwitchRole,
   onLeave,
 }: TeamWorkspaceHeaderProps) {
   const [isOnline, setIsOnline] = useState(true);
@@ -80,23 +76,7 @@ export function TeamWorkspaceHeader({
             </span>
           </div>
 
-          {/* Member Role Badge */}
-          {memberRole && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[var(--color-apb-cyan)]/30 bg-[var(--color-apb-cyan)]/10 text-[var(--color-apb-cyan)] text-xs font-mono tracking-wide">
-              <User className="w-3.5 h-3.5" />
-              <span>
-                {memberRole === "member1" ? "Member 1 — Prompt" : "Member 2 — Creative"}
-              </span>
-              <button
-                onClick={onSwitchRole}
-                title="Switch Role"
-                className="ml-1 hover:text-white transition-colors"
-              >
-                <ArrowLeftRight className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-        </div>
+       </div>
 
         {/* Center/Right: Statuses & Authoritative Timer */}
         <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-6">
@@ -162,3 +142,5 @@ export function TeamWorkspaceHeader({
     </header>
   );
 }
+
+

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useTeamSession, MemberRole } from "@/lib/auth/TeamSessionContext";
+import { useTeamSession } from "@/lib/auth/TeamSessionContext";
 import { useEventState, useCurrentRound } from "@/lib/firebase/events";
 import { useDraft } from "@/lib/firebase/drafts";
 import { useTeamRoundState, useSubmission } from "@/lib/firebase/submissions";
@@ -13,7 +13,6 @@ import { TeamWorkspaceHeader } from "@/components/apb/TeamWorkspaceHeader";
 import { ChallengePanel } from "@/components/apb/ChallengePanel";
 import { PromptEditor } from "@/components/apb/PromptEditor";
 import { CreativeWorkspace } from "@/components/apb/CreativeWorkspace";
-import { MemberRoleSelector } from "@/components/apb/MemberRoleSelector";
 import { SubmissionReviewDialog } from "@/components/apb/SubmissionReviewDialog";
 import { SubmissionSuccessView } from "@/components/apb/SubmissionSuccessView";
 import { QuizWorkspace } from "@/components/apb/QuizWorkspace";
@@ -21,13 +20,13 @@ import { ProgressiveConstraintWorkspace } from "@/components/apb/ProgressiveCons
 import { Loader2, Send, Lock, PauseCircle, WifiOff, Users, Clock, Sparkles } from "lucide-react";
 
 export default function ParticipantDashboard() {
-  const { teamId, eventId, teamData, memberRole, setMemberRole, loading: sessionLoading, leaveTeam } = useTeamSession();
+  const { teamId, eventId, teamData,  loading: sessionLoading, leaveTeam } = useTeamSession();
   const { eventState, loading: eventLoading } = useEventState();
   const { currentRound, loading: roundLoading } = useCurrentRound(eventState?.currentRoundId || null);
   const router = useRouter();
 
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  
   const [isOnline, setIsOnline] = useState(true);
 
   // Security UI deterrents (§31): discourage right-click and common inspect shortcuts on participant workstations
@@ -258,9 +257,9 @@ export default function ParticipantDashboard() {
             teamId={teamId}
             teamDisplayName={teamData?.displayName}
             round={currentRound}
-            memberRole={memberRole}
+            
             saveStatus="SAVED"
-            onSwitchRole={() => setRoleModalOpen(true)}
+            
             onLeave={handleLogout}
           />
           <main className="flex-1 p-4 md:p-8">
@@ -276,38 +275,7 @@ export default function ParticipantDashboard() {
     }
   }
 
-  // State 3: Member Role Selection (if member hasn't picked role yet or requested switch)
-  if (!memberRole || roleModalOpen) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col font-sans">
-        <header className="border-b border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)] px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-mono font-bold tracking-widest uppercase text-white">
-              AI Prompt Battle
-            </h1>
-            <StatusBadge status={currentRound.status} />
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="font-mono text-sm text-white font-bold">{teamId}</span>
-            <APBButton variant="ghost" size="sm" onClick={handleLogout}>
-              Leave
-            </APBButton>
-          </div>
-        </header>
 
-        <main className="flex-1 p-4 md:p-8">
-          <MemberRoleSelector
-            team={teamData}
-            round={currentRound}
-            onSelectRole={(role: MemberRole) => {
-              setMemberRole(role);
-              setRoleModalOpen(false);
-            }}
-          />
-        </main>
-      </div>
-    );
-  }
 
   // State 4: Active Competition Workspace (LIVE, PAUSED, or CLOSED without submission)
   const isRoundClosed = currentRound.status === "CLOSED";
@@ -327,9 +295,9 @@ export default function ParticipantDashboard() {
           teamId={teamId}
           teamDisplayName={teamData?.displayName}
           round={currentRound}
-          memberRole={memberRole}
+          
           saveStatus={saveStatus}
-          onSwitchRole={() => setRoleModalOpen(true)}
+          
           onLeave={handleLogout}
         />
         <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
@@ -354,9 +322,9 @@ export default function ParticipantDashboard() {
           teamId={teamId}
           teamDisplayName={teamData?.displayName}
           round={currentRound}
-          memberRole={memberRole}
+          
           saveStatus={saveStatus}
-          onSwitchRole={() => setRoleModalOpen(true)}
+          
           onLeave={handleLogout}
         />
         <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
@@ -365,7 +333,7 @@ export default function ParticipantDashboard() {
             teamId={teamId}
             teamDisplayName={teamData?.displayName}
             eventId={eventId || "currentEvent"}
-            memberRole={memberRole}
+            
           />
         </main>
       </div>
@@ -380,9 +348,9 @@ export default function ParticipantDashboard() {
         teamId={teamId}
         teamDisplayName={teamData?.displayName}
         round={currentRound}
-        memberRole={memberRole}
+        
         saveStatus={saveStatus}
-        onSwitchRole={() => setRoleModalOpen(true)}
+        
         onLeave={handleLogout}
       />
 
@@ -424,9 +392,9 @@ export default function ParticipantDashboard() {
                  ...prev,
                  prompt: newPrompt,
                  member1Data: { ...prev.member1Data, text: newPrompt },
-               }), memberRole);
+               }), "member1");
              }}
-            isMyRole={memberRole === "member1"}
+            isMyRole={true}
             member1Name={teamData?.member1}
             readOnly={isReadOnly}
             saveStatus={saveStatus}
@@ -450,7 +418,7 @@ export default function ParticipantDashboard() {
                   imageUrl: newImageUrl,
                   fileName: newFileName,
                 },
-              }), memberRole);
+              }), "member1");
             }}
             onTextChange={(newText) => {
               updateDraft((prev) => ({
@@ -459,9 +427,9 @@ export default function ParticipantDashboard() {
                   ...prev.member2Data,
                   text: newText,
                 },
-              }), memberRole);
+              }), "member1");
             }}
-            isMyRole={memberRole === "member2"}
+            isMyRole={true}
             member2Name={teamData?.member2}
             readOnly={isReadOnly}
           />
@@ -507,7 +475,7 @@ export default function ParticipantDashboard() {
         round={currentRound}
         teamId={teamId}
         draft={draft}
-        submittedBy={memberRole || "member1"}
+        submittedBy={"member1"}
         onSuccess={() => {
           setReviewOpen(false);
         }}
@@ -515,3 +483,5 @@ export default function ParticipantDashboard() {
     </div>
   );
 }
+
+
