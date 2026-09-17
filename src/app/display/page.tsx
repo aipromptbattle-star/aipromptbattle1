@@ -164,8 +164,13 @@ export default function PublicHostDisplay() {
   const activeLayout = eventState?.activeDisplayLayout || 1;
   const displayOverride = eventState?.displayOverride || "AUTOMATIC";
 
-  const showLeaderboard = displayOverride === "LEADERBOARD" || (displayOverride === "AUTOMATIC" && currentRound?.resultsPublished);
   const showCustom = displayOverride === "IMAGE" || displayOverride === "TEXT";
+  const showLeaderboard = displayOverride === "LEADERBOARD" || (displayOverride === "AUTOMATIC" && currentRound?.resultsPublished);
+  const showWaiting = displayOverride === "WAITING" || (displayOverride === "AUTOMATIC" && (!currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT"));
+  const showLive = displayOverride === "LIVE_ROUND" || (displayOverride === "AUTOMATIC" && currentRound?.status === "LIVE");
+  const showStarting = displayOverride === "AUTOMATIC" && currentRound?.status === "STARTING";
+  const showPaused = displayOverride === "AUTOMATIC" && currentRound?.status === "PAUSED";
+  const showComplete = displayOverride === "AUTOMATIC" && (currentRound?.status === "CLOSED" || currentRound?.status === "ENDED" || currentRound?.status === "JUDGING" || currentRound?.status === "RESULTS");
 
   // Leaderboard scored teams
   const scoredSubmissions = [...submissions]
@@ -329,7 +334,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 2. AUTHORITATIVE COUNTDOWN */}
-        {!showLeaderboard && !showCustom && isStarting && (
+        {!showLeaderboard && !showCustom && showStarting && (
           <div className="flex flex-col items-center justify-center gap-4 animate-in zoom-in-95 duration-200">
             <div className="text-xl sm:text-2xl font-mono uppercase tracking-widest text-white/80 font-bold">
               ROUND 0{currentRound?.roundNumber}
@@ -351,7 +356,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 3. WAITING SCREEN */}
-        {!showLeaderboard && !showCustom && !isStarting && (displayOverride === "WAITING" || !currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT") && (
+        {!showLeaderboard && !showCustom && showWaiting && (
           <div className="flex flex-col items-center justify-center gap-6 max-w-3xl">
             <div className="px-6 py-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-[var(--color-apb-cyan)] font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
               <Clock className="w-4 h-4 animate-pulse" />
@@ -374,7 +379,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 4. PAUSED */}
-        {!showLeaderboard && !showCustom && !isStarting && currentRound?.status === "PAUSED" && (
+        {!showLeaderboard && !showCustom && showPaused && (
           <div className="flex flex-col items-center justify-center gap-5 max-w-4xl animate-pulse">
             <div className="px-6 py-2 rounded-full border border-amber-500/50 bg-amber-500/20 text-amber-300 font-mono text-base tracking-widest uppercase font-bold flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
@@ -400,7 +405,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 5. ROUND COMPLETE */}
-        {!showLeaderboard && !showCustom && !isStarting && (currentRound?.status === "CLOSED" || currentRound?.status === "ENDED" || currentRound?.status === "JUDGING" || currentRound?.status === "RESULTS") && (
+        {!showLeaderboard && !showCustom && showComplete && (
           <div className="flex flex-col items-center justify-center gap-5 max-w-3xl">
             <div className="px-6 py-2 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-purple-400" />
@@ -418,7 +423,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 6. LIVE ROUND (TIMER IS DOMINANT) */}
-        {!showLeaderboard && !showCustom && !isStarting && currentRound?.status === "LIVE" && (
+        {!showLeaderboard && !showCustom && showLive && (
           <div className="w-full flex flex-col items-center justify-center gap-6 max-w-5xl">
             
             {/* DOMINANT HERO TIMER */}
@@ -440,10 +445,10 @@ export default function PublicHostDisplay() {
             {/* ROUND NAME & STAGE (Positioned below dominant timer) */}
             <div className="flex flex-col items-center gap-2">
               <div className="text-2xl sm:text-3xl md:text-4xl font-mono font-black uppercase tracking-wider text-white">
-                ROUND 0{currentRound.roundNumber}
+                ROUND 0{currentRound?.roundNumber || 1}
               </div>
               <div className="text-lg sm:text-xl font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold">
-                {currentRound.title}
+                {currentRound?.title || "CHALLENGE"}
               </div>
 
               {isProgressive && (
