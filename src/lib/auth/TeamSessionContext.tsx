@@ -41,26 +41,20 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
   const [anonUser, setAnonUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Restore session and member role from localStorage if it exists
     const storedTeamId = localStorage.getItem("apb_team_id");
     const storedEventId = localStorage.getItem("apb_event_id");
     const storedRole = localStorage.getItem("apb_member_role") as MemberRole | null;
-
-    if (storedTeamId && storedEventId) {
-      queueMicrotask(() => {
-        setTeamId(storedTeamId);
-        setEventId(storedEventId);
-        if (storedRole === "member1" || storedRole === "member2") {
-          setMemberRoleState(storedRole);
-        }
-      });
-    }
 
     // Ensure we have an anonymous Firebase auth session for read access
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setAnonUser(user);
-        if (storedTeamId) {
+        if (storedTeamId && storedEventId) {
+          setTeamId(storedTeamId);
+          setEventId(storedEventId);
+          if (storedRole === "member1" || storedRole === "member2") {
+            setMemberRoleState(storedRole);
+          }
           // Fetch team data once auth is restored
           getDoc(doc(db, "teams", storedTeamId)).then((snap) => {
             if (snap.exists()) {
@@ -71,6 +65,8 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
       } else {
         // Do NOT automatically sign in anonymously. Wait for joinTeam.
         setAnonUser(null);
+        setTeamId(null);
+        setEventId(null);
       }
       setLoading(false);
     });
