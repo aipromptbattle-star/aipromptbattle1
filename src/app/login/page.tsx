@@ -50,26 +50,38 @@ function LoginContent() {
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [router]);
 
+  const [isManualEntry, setIsManualEntry] = useState(false);
+
   const handleParticipantLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     
-    if (!teamId.trim()) {
-      setError("Please enter your 3-digit Team Number.");
-      setLoading(false);
-      return;
+    let fullTeamId = "";
+
+    if (isManualEntry) {
+      if (!teamId.trim()) {
+        setError("Please enter your Team ID.");
+        setLoading(false);
+        return;
+      }
+      fullTeamId = teamId.trim().toUpperCase();
+    } else {
+      if (!teamId.trim()) {
+        setError("Please enter your 3-digit Team Number.");
+        setLoading(false);
+        return;
+      }
+      const numericOnly = teamId.trim();
+      if (!/^\d{1,3}$/.test(numericOnly)) {
+        setError("Invalid format. Please enter up to 3 digits (e.g. 001, 012, 145).");
+        setLoading(false);
+        return;
+      }
+      const paddedTeamId = numericOnly.padStart(3, "0");
+      fullTeamId = `APB-${paddedTeamId}`;
     }
 
-    const numericOnly = teamId.trim();
-    if (!/^\d{1,3}$/.test(numericOnly)) {
-      setError("Invalid format. Please enter up to 3 digits (e.g. 001, 012, 145).");
-      setLoading(false);
-      return;
-    }
-
-    const paddedTeamId = numericOnly.padStart(3, "0");
-    const fullTeamId = `APB-${paddedTeamId}`;
     const EVENT_ID = "currentEvent";
     
     const result = await joinTeam(fullTeamId, EVENT_ID, accessCode);
@@ -153,23 +165,45 @@ function LoginContent() {
 
           <form onSubmit={handleParticipantLogin} className="space-y-4">
             <div className="space-y-1.5 text-left">
-              <Label htmlFor="teamId" className="text-muted-foreground uppercase tracking-widest text-[10px] font-mono block text-center">
-                TEAM ID
-              </Label>
-              <div className="flex items-center">
-                <div className="flex items-center justify-center h-12 px-4 font-mono text-xl tracking-widest bg-black/80 border border-r-0 border-[var(--color-apb-surface-border)] text-muted-foreground rounded-l-md">
-                  APB-
-                </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="teamId" className="text-muted-foreground uppercase tracking-widest text-[10px] font-mono">
+                  TEAM ID
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => { setIsManualEntry(!isManualEntry); setTeamId(""); setError(""); }}
+                  className="text-[10px] font-mono text-[var(--color-apb-cyan)] uppercase hover:underline"
+                >
+                  {isManualEntry ? "STANDARD ENTRY" : "MANUAL ENTRY"}
+                </button>
+              </div>
+              
+              {isManualEntry ? (
                 <Input
                   id="teamId"
-                  placeholder="001"
+                  placeholder="e.g. APB001 or TEST-1"
                   value={teamId}
-                  onChange={(e) => setTeamId(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                  className="font-mono text-xl h-12 uppercase text-left tracking-widest bg-black/50 border-[var(--color-apb-surface-border)] text-[var(--color-apb-cyan)] placeholder:text-slate-600 focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)] rounded-l-none"
+                  onChange={(e) => setTeamId(e.target.value.toUpperCase())}
+                  className="font-mono text-xl h-12 uppercase text-left tracking-widest bg-black/50 border-[var(--color-apb-surface-border)] text-[var(--color-apb-cyan)] placeholder:text-slate-600 focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)]"
                   disabled={loading}
                   autoFocus
                 />
-              </div>
+              ) : (
+                <div className="flex items-center">
+                  <div className="flex items-center justify-center h-12 px-4 font-mono text-xl tracking-widest bg-black/80 border border-r-0 border-[var(--color-apb-surface-border)] text-muted-foreground rounded-l-md">
+                    APB-
+                  </div>
+                  <Input
+                    id="teamId"
+                    placeholder="001"
+                    value={teamId}
+                    onChange={(e) => setTeamId(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                    className="font-mono text-xl h-12 uppercase text-left tracking-widest bg-black/50 border-[var(--color-apb-surface-border)] text-[var(--color-apb-cyan)] placeholder:text-slate-600 focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)] rounded-l-none"
+                    disabled={loading}
+                    autoFocus
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5 text-left">
