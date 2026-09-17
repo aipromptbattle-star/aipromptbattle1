@@ -68,12 +68,8 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
       if (user) {
         setAnonUser(user);
       } else {
-        try {
-          const cred = await signInAnonymously(auth);
-          setAnonUser(cred.user);
-        } catch (e) {
-          console.error("Anonymous auth failed:", e);
-        }
+        // Do NOT automatically sign in anonymously. Wait for joinTeam.
+        setAnonUser(null);
       }
       setLoading(false);
     });
@@ -105,20 +101,31 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
   };
 
   const joinTeam = async (targetTeamId: string, targetEventId: string, accessCode?: string) => {
-    if (!anonUser) return { success: false, error: "Not connected to system." };
+    let currentUser = anonUser;
     
     // Check if team exists and is active
     const normalizedTeamId = targetTeamId.trim().toUpperCase();
     try {
+      if (!currentUser) {
+        // Temporarily sign in to verify team against Firestore rules
+        const cred = await signInAnonymously(auth);
+        currentUser = cred.user;
+        setAnonUser(currentUser);
+      }
+
       const teamRef = doc(db, "teams", normalizedTeamId);
       const teamSnap = await getDoc(teamRef);
       
       if (!teamSnap.exists()) {
-        return { success: false, error: "TEAM NOT FOUND" };
+        await auth.signOut();
+        setAnonUser(null);
+        return { success: false, error: "TEAM NOT FOUND: Team ID not recognized." };
       }
       
       const tData = teamSnap.data() as Team;
       if (!tData.active) {
+        await auth.signOut();
+        setAnonUser(null);
         return { success: false, error: "TEAM INACTIVE" };
       }
 
@@ -127,9 +134,11 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
         const expectedCode = tData.accessCode.trim().toUpperCase();
         const providedCode = (accessCode || "").trim().toUpperCase();
         if (!providedCode || providedCode !== expectedCode) {
+          await auth.signOut();
+          setAnonUser(null);
           return { 
             success: false, 
-            error: "INVALID ACCESS CODE: Incorrect access code for this team." 
+            error: "INVALID ACCESS ID: Incorrect access code for this team." 
           };
         }
       }
@@ -139,8 +148,10 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
       const activeSessionsSnap = await getDocs(sessionsQuery);
       
       // Filter out the current user's existing session if re-joining
-      const otherSessions = activeSessionsSnap.docs.filter(d => d.id !== anonUser.uid);
+      const otherSessions = activeSessionsSnap.docs.filter(d => d.id !== currentUser!.uid);
       if (otherSessions.length >= 2) {
+        await auth.signOut();
+        setAnonUser(null);
         return { 
           success: false, 
           error: "SESSION LIMIT REACHED: Maximum 2 concurrent devices allowed for this team." 
@@ -148,7 +159,7 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
       }
 
       // Record session in Firestore
-      const sessionRef = doc(db, "sessions", anonUser.uid);
+      const sessionRef = doc(db, "sessions", currentUser!.uid);
       await setDoc(sessionRef, {
         teamId: normalizedTeamId,
         eventId: targetEventId,

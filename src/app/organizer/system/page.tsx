@@ -21,6 +21,7 @@ import { db } from "@/lib/firebase/config";
 import { AuditLog } from "@/lib/firebase/schema";
 import { logAudit } from "@/lib/firebase/teams";
 import Link from "next/link";
+import { EventDataExport } from "@/components/organizer/EventDataExport";
 import {
   runSystemHealthChecks,
   resetCurrentTestRound,
@@ -534,6 +535,10 @@ export default function OrganizerSystem() {
         </APBCard>
       </section>
 
+      {/* ── SECTION 6: EVENT DATA EXPORT ── */}
+      <section className="space-y-4">
+        <EventDataExport />
+      </section>
 
       {/* Two-Step Confirmation Dialog: Reset Test Round */}
       <ConfirmationDialog

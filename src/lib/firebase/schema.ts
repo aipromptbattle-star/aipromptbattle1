@@ -2,7 +2,7 @@ export type EventStatus = "DRAFT" | "LIVE" | "ENDED";
 export type RoundStatus = "DRAFT" | "READY" | "STARTING" | "LIVE" | "PAUSED" | "CLOSED" | "JUDGING" | "RESULTS" | "ENDED";
 export type ChallengeType = "TEXT" | "IMAGE" | "COMBINED";
 
-export type DisplayMode = "AUTOMATIC" | "LEADERBOARD" | "LIVE_ROUND" | "EVENT_STATUS" | "WAITING";
+export type DisplayMode = "AUTOMATIC" | "LEADERBOARD" | "LIVE_ROUND" | "EVENT_STATUS" | "WAITING" | "IMAGE" | "TEXT";
 
 export interface Event {
   eventName: string;
@@ -12,6 +12,8 @@ export interface Event {
   resultsPublished?: boolean;
   activeDisplayLayout?: number; // 1 to 10
   displayOverride?: DisplayMode;
+  displayImageUrl?: string;
+  displayCustomText?: string;
   googleSheetsUrl?: string;
   createdAt: number;
   updatedAt: number;

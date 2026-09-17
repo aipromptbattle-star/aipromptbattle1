@@ -56,14 +56,23 @@ function LoginContent() {
     setLoading(true);
     
     if (!teamId.trim()) {
-      setError("Please enter a Team ID.");
+      setError("Please enter your 3-digit Team Number.");
       setLoading(false);
       return;
     }
 
+    const numericOnly = teamId.trim();
+    if (!/^\d{1,3}$/.test(numericOnly)) {
+      setError("Invalid format. Please enter up to 3 digits (e.g. 001, 012, 145).");
+      setLoading(false);
+      return;
+    }
+
+    const paddedTeamId = numericOnly.padStart(3, "0");
+    const fullTeamId = `APB-${paddedTeamId}`;
     const EVENT_ID = "currentEvent";
     
-    const result = await joinTeam(teamId, EVENT_ID, accessCode);
+    const result = await joinTeam(fullTeamId, EVENT_ID, accessCode);
     if (result.success) {
       router.push("/team");
     } else {
@@ -147,15 +156,20 @@ function LoginContent() {
               <Label htmlFor="teamId" className="text-muted-foreground uppercase tracking-widest text-[10px] font-mono block text-center">
                 TEAM ID
               </Label>
-              <Input
-                id="teamId"
-                placeholder="APB-____"
-                value={teamId}
-                onChange={(e) => setTeamId(e.target.value)}
-                className="font-mono text-xl h-12 uppercase text-center tracking-widest bg-black/50 border-[var(--color-apb-surface-border)] text-[var(--color-apb-cyan)] placeholder:text-slate-600 focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)]"
-                disabled={loading}
-                autoFocus
-              />
+              <div className="flex items-center">
+                <div className="flex items-center justify-center h-12 px-4 font-mono text-xl tracking-widest bg-black/80 border border-r-0 border-[var(--color-apb-surface-border)] text-muted-foreground rounded-l-md">
+                  APB-
+                </div>
+                <Input
+                  id="teamId"
+                  placeholder="001"
+                  value={teamId}
+                  onChange={(e) => setTeamId(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                  className="font-mono text-xl h-12 uppercase text-left tracking-widest bg-black/50 border-[var(--color-apb-surface-border)] text-[var(--color-apb-cyan)] placeholder:text-slate-600 focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)] rounded-l-none"
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5 text-left">

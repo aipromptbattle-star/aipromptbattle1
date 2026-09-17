@@ -164,8 +164,8 @@ export default function PublicHostDisplay() {
   const activeLayout = eventState?.activeDisplayLayout || 1;
   const displayOverride = eventState?.displayOverride || "AUTOMATIC";
 
-  // Check if Leaderboard is explicitly triggered by organizer or if results are published
   const showLeaderboard = displayOverride === "LEADERBOARD" || (displayOverride === "AUTOMATIC" && currentRound?.resultsPublished);
+  const showCustom = displayOverride === "IMAGE" || displayOverride === "TEXT";
 
   // Leaderboard scored teams
   const scoredSubmissions = [...submissions]
@@ -226,10 +226,38 @@ export default function PublicHostDisplay() {
       </header>
 
       {/* MAIN PRESENTATION ARENA */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-4 text-center max-w-6xl mx-auto w-full">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-4 text-center max-w-6xl mx-auto w-full h-full">
+
+        {/* CUSTOM IMAGE MODE */}
+        {displayOverride === "IMAGE" && (
+          <div className="w-full h-full flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-300">
+            {eventState?.displayImageUrl ? (
+              <img 
+                src={eventState.displayImageUrl} 
+                alt="Display Custom" 
+                className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-white/10 shadow-2xl" 
+              />
+            ) : (
+              <div className="text-muted-foreground font-mono uppercase tracking-widest">NO IMAGE PROVIDED</div>
+            )}
+          </div>
+        )}
+
+        {/* CUSTOM TEXT / RULES MODE */}
+        {displayOverride === "TEXT" && (
+          <div className="w-full max-w-5xl flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-300 p-8 sm:p-12 rounded-3xl bg-black/60 border border-white/10 backdrop-blur-md shadow-2xl">
+            {eventState?.displayCustomText ? (
+              <div className="whitespace-pre-wrap text-left w-full text-xl sm:text-2xl md:text-3xl font-mono text-white tracking-wide leading-relaxed overflow-y-auto max-h-[75vh]">
+                {eventState.displayCustomText}
+              </div>
+            ) : (
+              <div className="text-muted-foreground font-mono uppercase tracking-widest">NO TEXT PROVIDED</div>
+            )}
+          </div>
+        )}
 
         {/* 1. OVERRIDE: SHOW LEADERBOARD */}
-        {showLeaderboard && (
+        {showLeaderboard && !showCustom && (
           <div className="w-full max-w-4xl flex flex-col items-center gap-6 animate-in fade-in zoom-in-95 duration-300">
             <div className="space-y-1">
               <div className="px-5 py-1.5 rounded-full border border-yellow-500/40 bg-yellow-500/10 text-yellow-300 font-mono text-xs tracking-widest uppercase font-bold inline-flex items-center gap-2">
@@ -287,7 +315,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 2. AUTHORITATIVE COUNTDOWN */}
-        {!showLeaderboard && isStarting && (
+        {!showLeaderboard && !showCustom && isStarting && (
           <div className="flex flex-col items-center justify-center gap-4 animate-in zoom-in-95 duration-200">
             <div className="text-xl sm:text-2xl font-mono uppercase tracking-widest text-white/80 font-bold">
               ROUND 0{currentRound?.roundNumber}
@@ -309,7 +337,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 3. WAITING SCREEN */}
-        {!showLeaderboard && !isStarting && (displayOverride === "WAITING" || !currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT") && (
+        {!showLeaderboard && !showCustom && !isStarting && (displayOverride === "WAITING" || !currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT") && (
           <div className="flex flex-col items-center justify-center gap-6 max-w-3xl">
             <div className="px-6 py-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-[var(--color-apb-cyan)] font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
               <Clock className="w-4 h-4 animate-pulse" />
@@ -332,7 +360,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 4. PAUSED */}
-        {!showLeaderboard && !isStarting && currentRound?.status === "PAUSED" && (
+        {!showLeaderboard && !showCustom && !isStarting && currentRound?.status === "PAUSED" && (
           <div className="flex flex-col items-center justify-center gap-5 max-w-4xl animate-pulse">
             <div className="px-6 py-2 rounded-full border border-amber-500/50 bg-amber-500/20 text-amber-300 font-mono text-base tracking-widest uppercase font-bold flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
@@ -358,7 +386,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 5. ROUND COMPLETE */}
-        {!showLeaderboard && !isStarting && (currentRound?.status === "CLOSED" || currentRound?.status === "ENDED" || currentRound?.status === "JUDGING" || currentRound?.status === "RESULTS") && (
+        {!showLeaderboard && !showCustom && !isStarting && (currentRound?.status === "CLOSED" || currentRound?.status === "ENDED" || currentRound?.status === "JUDGING" || currentRound?.status === "RESULTS") && (
           <div className="flex flex-col items-center justify-center gap-5 max-w-3xl">
             <div className="px-6 py-2 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-purple-400" />
@@ -376,7 +404,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 6. LIVE ROUND (TIMER IS DOMINANT) */}
-        {!showLeaderboard && !isStarting && currentRound?.status === "LIVE" && (
+        {!showLeaderboard && !showCustom && !isStarting && currentRound?.status === "LIVE" && (
           <div className="w-full flex flex-col items-center justify-center gap-6 max-w-5xl">
             
             {/* DOMINANT HERO TIMER */}

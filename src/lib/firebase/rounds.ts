@@ -33,6 +33,10 @@ export function useRounds() {
   return { rounds, loading };
 }
 
+export function cleanUndefined(obj: any): any {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 export async function createRound(roundData: Omit<Round, "id" | "status" | "startedAt" | "endsAt" | "pausedRemainingSeconds" | "createdAt" | "updatedAt">) {
   // Prevent duplicate round numbers
   const q = query(collection(db, "rounds"), where("roundNumber", "==", roundData.roundNumber));
@@ -53,7 +57,7 @@ export async function createRound(roundData: Omit<Round, "id" | "status" | "star
     updatedAt: Date.now(),
   };
 
-  await setDoc(newRoundRef, newRound);
+  await setDoc(newRoundRef, cleanUndefined(newRound));
   await logAudit("ROUND_CREATED", "ORGANIZER", { roundId: newRound.id });
   
   return newRound.id;
@@ -61,10 +65,11 @@ export async function createRound(roundData: Omit<Round, "id" | "status" | "star
 
 export async function updateRound(roundId: string, updates: Partial<Omit<Round, "id" | "createdAt">>) {
   const roundRef = doc(db, "rounds", roundId);
-  await updateDoc(roundRef, {
+  const cleanUpdates = cleanUndefined({
     ...updates,
     updatedAt: Date.now(),
   });
+  await updateDoc(roundRef, cleanUpdates);
   await logAudit("ROUND_UPDATED", "ORGANIZER", {
     roundId,
     metadata: updates as Record<string, unknown>,

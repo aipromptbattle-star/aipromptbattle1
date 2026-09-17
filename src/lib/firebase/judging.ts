@@ -420,6 +420,122 @@ export async function autoDistributeTeamsToJudges({
   return assignedCount;
 }
 
+/**
+ * Rebalance pending (unjudged) teams among active judges.
+ * Already-judged teams (with a FINAL score) are skipped.
+ */
+export async function rebalancePendingTeams({
+  roundId,
+  judges,
+  eventId = "currentEvent",
+  assignedBy = "ORGANIZER",
+}: {
+  roundId: string;
+  judges: Judge[];
+  eventId?: string;
+  assignedBy?: string;
+}) {
+  const activeJudges = judges.filter((j) => j.active);
+  if (activeJudges.length === 0) {
+    throw new Error("No active judges available for assignment.");
+  }
+
+  // Get all assignments for this round
+  const assignmentsQ = query(
+    collection(db, "judgeAssignments"),
+    where("roundId", "==", roundId)
+  );
+  const assignmentsSnap = await getDocs(assignmentsQ);
+  const allAssignments = assignmentsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as JudgeAssignment));
+
+  if (allAssignments.length === 0) {
+    throw new Error("No assignments exist to rebalance.");
+  }
+
+  // Get all scores for this round to determine which assignments are judged
+  const scoresQ = query(
+    collection(db, "scores"),
+    where("roundId", "==", roundId)
+  );
+  const scoresSnap = await getDocs(scoresQ);
+  const allScores = scoresSnap.docs.map((d) => ({ id: d.id, ...d.data() } as JudgeScore));
+  
+  const pendingTeamIds = new Set<string>();
+  const deleteBatchPromises: Promise<void>[] = [];
+
+  for (const a of allAssignments) {
+    // Check if there is a FINAL score for this exact assignment (submissionId + judgeId)
+    const score = allScores.find(s => s.submissionId === a.submissionId && s.judgeId === a.judgeId && s.status === "FINAL");
+    if (!score) {
+      // It's pending, delete the assignment and add the teamId to our pool to redistribute
+      deleteBatchPromises.push(deleteDoc(doc(db, "judgeAssignments", a.id)));
+      pendingTeamIds.add(a.submissionId); // In assignments, submissionId holds teamId or actual submissionId
+    }
+  }
+
+  const teamIdsToRebalance = Array.from(pendingTeamIds);
+
+  if (teamIdsToRebalance.length === 0) {
+    throw new Error("No pending teams left to rebalance.");
+  }
+
+  await Promise.all(deleteBatchPromises);
+
+  const numJudges = activeJudges.length;
+  const totalPending = teamIdsToRebalance.length;
+  const base = Math.floor(totalPending / numJudges);
+  let remainder = totalPending % numJudges;
+  const judgeCapacity = activeJudges.map(() => {
+    let cap = base;
+    if (remainder > 0) {
+      cap += 1;
+      remainder--;
+    }
+    return cap;
+  });
+
+  let teamIndex = 0;
+  let assignedCount = 0;
+
+  for (let j = 0; j < activeJudges.length; j++) {
+    const judge = activeJudges[j];
+    const limit = judgeCapacity[j] || 0;
+
+    for (let c = 0; c < limit && teamIndex < teamIdsToRebalance.length; c++) {
+      const tId = teamIdsToRebalance[teamIndex];
+      teamIndex++;
+
+      const assignmentId = `${eventId}_${roundId}_${tId}_${judge.uid}`;
+      const ref = doc(db, "judgeAssignments", assignmentId);
+      const assignment: JudgeAssignment = {
+        id: assignmentId,
+        eventId,
+        roundId,
+        submissionId: tId,
+        teamId: tId, // Assumes submissionId is essentially the teamId or we map 1:1
+        judgeId: judge.uid,
+        judgeName: judge.displayName,
+        status: "PENDING",
+        createdAt: Date.now(),
+        assignedBy,
+      };
+      await setDoc(ref, assignment);
+      assignedCount++;
+    }
+  }
+
+  await logAudit("TEAMS_REBALANCED", "ORGANIZER", {
+    metadata: {
+      roundId,
+      totalPendingRebalanced: totalPending,
+      assignedCount,
+      judgesCount: activeJudges.length,
+    },
+  });
+
+  return totalPending;
+}
+
 // ─────────────────────────────────────────────────────────────
 // 3. JUDGE SCORES
 // ─────────────────────────────────────────────────────────────

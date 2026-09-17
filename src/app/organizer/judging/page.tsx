@@ -16,8 +16,8 @@ import {
   useJudgeAssignments,
   assignJudge,
   unassignJudge,
-  autoDistributeAssignments,
   autoDistributeTeamsToJudges,
+  rebalancePendingTeams,
   useJudgeScores,
   overrideJudgeScore,
 } from "@/lib/firebase/judging";
@@ -496,6 +496,10 @@ export default function OrganizerJudging() {
   const [teamsPerJudgeInput, setTeamsPerJudgeInput] = useState<number>(20);
   const [autoAssigning, setAutoAssigning] = useState(false);
 
+  // Rebalance modal state
+  const [rebalanceOpen, setRebalanceOpen] = useState(false);
+  const [isRebalancing, setIsRebalancing] = useState(false);
+
   const availableRounds = rounds;
   const selectedRound = availableRounds.find((r) => r.id === selectedRoundId) ?? availableRounds[0] ?? null;
   const activeRoundId = selectedRound?.id ?? null;
@@ -565,6 +569,24 @@ export default function OrganizerJudging() {
       alert(err instanceof Error ? err.message : "Auto-distribution failed.");
     } finally {
       setAutoAssigning(false);
+    }
+  };
+
+  const handleRebalance = async () => {
+    if (!selectedRound) return;
+    setIsRebalancing(true);
+    try {
+      const count = await rebalancePendingTeams({
+        roundId: selectedRound.id,
+        judges,
+      });
+      alert(`Successfully redistributed ${count} pending teams.`);
+      setRebalanceOpen(false);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Rebalancing failed.");
+    } finally {
+      setIsRebalancing(false);
     }
   };
 
@@ -666,14 +688,24 @@ export default function OrganizerJudging() {
 
           <div className="flex items-center gap-2">
             <APBButton
+              variant="outline"
+              size="sm"
+              onClick={() => setRebalanceOpen(true)}
+              disabled={judges.length === 0}
+              className="font-mono text-xs uppercase border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+            >
+              <Shuffle className="w-3.5 h-3.5 mr-1.5" />
+              Rebalance Pending
+            </APBButton>
+            <APBButton
               glow
               size="sm"
               onClick={() => setAutoDistributeOpen(true)}
               disabled={judges.length === 0}
               className="font-mono text-xs uppercase"
             >
-              <Shuffle className="w-3.5 h-3.5 mr-1.5" />
-              Auto Distribute (§37)
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+              Auto Distribute
             </APBButton>
           </div>
         </div>
@@ -689,7 +721,9 @@ export default function OrganizerJudging() {
                 <tr>
                   <th className="pb-2">Judge</th>
                   <th className="pb-2">Assigned</th>
-                  <th className="pb-2">Completed</th>
+                  <th className="pb-2">Judged</th>
+                  <th className="pb-2">Pending</th>
+                  <th className="pb-2">Progress</th>
                   <th className="pb-2 text-right">Live Status</th>
                 </tr>
               </thead>
@@ -698,6 +732,9 @@ export default function OrganizerJudging() {
                   const isOnline = isJudgeOnline(j);
                   const judgeAssigns = assignments.filter((a) => a.judgeId === j.uid);
                   const completedJudge = scores.filter((s) => s.judgeId === j.uid && s.status === "FINAL").length;
+                  const assignedCount = judgeAssigns.length;
+                  const pendingCount = Math.max(0, assignedCount - completedJudge);
+                  const completionPercentage = assignedCount > 0 ? Math.round((completedJudge / assignedCount) * 100) : 0;
 
                   return (
                     <tr key={j.uid} className="hover:bg-white/[0.02]">
@@ -705,8 +742,17 @@ export default function OrganizerJudging() {
                         <span>{j.displayName}</span>
                         <span className="text-[10px] text-muted-foreground font-normal">({j.email})</span>
                       </td>
-                      <td className="py-2.5 text-white/80">{judgeAssigns.length} teams</td>
-                      <td className="py-2.5 text-[var(--color-apb-cyan)] font-bold">{completedJudge} evaluated</td>
+                      <td className="py-2.5 text-white/80">{assignedCount}</td>
+                      <td className="py-2.5 text-[var(--color-apb-cyan)] font-bold">{completedJudge}</td>
+                      <td className="py-2.5 text-amber-400 font-bold">{pendingCount}</td>
+                      <td className="py-2.5 text-white/80">
+                         <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                               <div className="h-full bg-[var(--color-apb-cyan)]" style={{ width: `${completionPercentage}%` }}></div>
+                            </div>
+                            <span className="text-[10px]">{completionPercentage}%</span>
+                         </div>
+                      </td>
                       <td className="py-2.5 text-right">
                         {isOnline ? (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
@@ -1064,6 +1110,41 @@ export default function OrganizerJudging() {
               </APBButton>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+      {/* Rebalance Dialog */}
+      <Dialog open={rebalanceOpen} onOpenChange={setRebalanceOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-mono uppercase text-white flex items-center gap-2">
+              <Shuffle className="w-5 h-5 text-amber-400" /> Rebalance Pending Teams
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4 font-mono text-xs">
+            <p className="text-muted-foreground">
+              This action redistributes <strong className="text-amber-400">{remainingCount} pending teams</strong> across the <strong className="text-white">{judges.filter(j => j.active).length} active judges</strong> to balance the remaining workload.
+            </p>
+
+            <div className="bg-black/40 border border-white/10 rounded-md p-3 space-y-2">
+              <div className="font-bold text-white mb-1">Safety Guarantees:</div>
+              <div className="flex items-center gap-2 text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" /> Already-scored teams will remain unchanged
+              </div>
+              <div className="flex items-center gap-2 text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" /> Existing scores will remain unchanged
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <APBButton variant="outline" className="flex-1" onClick={() => setRebalanceOpen(false)} disabled={isRebalancing}>
+                Cancel
+              </APBButton>
+              <APBButton glow className="flex-1 bg-amber-500 hover:bg-amber-600 text-black border-none" onClick={handleRebalance} disabled={isRebalancing}>
+                {isRebalancing ? "Rebalancing..." : "Confirm Rebalance"}
+              </APBButton>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

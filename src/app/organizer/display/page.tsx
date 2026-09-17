@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { APBCard } from "@/components/apb/APBCard";
 import { APBButton } from "@/components/apb/APBButton";
@@ -18,7 +18,9 @@ import {
   Radio, 
   Sparkles,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Image,
+  Type
 } from "lucide-react";
 
 export default function OrganizerDisplayControl() {
@@ -29,6 +31,16 @@ export default function OrganizerDisplayControl() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const activeMode: DisplayMode = eventState?.displayOverride || "AUTOMATIC";
+  
+  const [imageUrl, setImageUrl] = useState(eventState?.displayImageUrl || "");
+  const [customText, setCustomText] = useState(eventState?.displayCustomText || "");
+
+  useEffect(() => {
+    if (eventState) {
+      setImageUrl(eventState.displayImageUrl || "");
+      setCustomText(eventState.displayCustomText || "");
+    }
+  }, [eventState]);
 
   const showNotification = (msg: string) => {
     setFeedback(msg);
@@ -42,6 +54,21 @@ export default function OrganizerDisplayControl() {
       showNotification(`Host Display switched to: ${mode}`);
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "Failed to update display mode.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateContent = async () => {
+    setSaving(true);
+    try {
+      await updateEventSettings({ 
+        displayImageUrl: imageUrl,
+        displayCustomText: customText
+      });
+      showNotification("Display content updated successfully.");
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Failed to update content.");
     } finally {
       setSaving(false);
     }
@@ -131,13 +158,13 @@ export default function OrganizerDisplayControl() {
           SWITCH DISPLAY STATE
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* 1. SHOW LIVE ROUND */}
           <button
             type="button"
             onClick={() => handleSetMode("LIVE_ROUND")}
             disabled={saving}
-            className={`p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
+            className={`p-4 sm:p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
               activeMode === "LIVE_ROUND" || (activeMode === "AUTOMATIC" && currentRound?.status === "LIVE")
                 ? "bg-emerald-950/30 border-emerald-500 text-white shadow-lg shadow-emerald-950/50 ring-1 ring-emerald-500/50"
                 : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/30 hover:text-white"
@@ -147,20 +174,9 @@ export default function OrganizerDisplayControl() {
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                 <Flame className="w-5 h-5" />
               </div>
-              {(activeMode === "LIVE_ROUND" || (activeMode === "AUTOMATIC" && currentRound?.status === "LIVE")) && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] uppercase font-bold">
-                  ACTIVE
-                </span>
-              )}
             </div>
-
             <div>
-              <div className="text-base font-bold text-white uppercase tracking-wider">
-                SHOW LIVE ROUND
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Displays live timer, active challenge statement, and constraint reveals.
-              </p>
+              <div className="text-sm font-bold text-white uppercase tracking-wider">LIVE ROUND</div>
             </div>
           </button>
 
@@ -169,7 +185,7 @@ export default function OrganizerDisplayControl() {
             type="button"
             onClick={() => handleSetMode("LEADERBOARD")}
             disabled={saving}
-            className={`p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
+            className={`p-4 sm:p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
               activeMode === "LEADERBOARD"
                 ? "bg-yellow-950/30 border-yellow-500 text-white shadow-lg shadow-yellow-950/50 ring-1 ring-yellow-500/50"
                 : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/30 hover:text-white"
@@ -179,20 +195,9 @@ export default function OrganizerDisplayControl() {
               <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
                 <Trophy className="w-5 h-5" />
               </div>
-              {activeMode === "LEADERBOARD" && (
-                <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 text-[10px] uppercase font-bold">
-                  ACTIVE
-                </span>
-              )}
             </div>
-
             <div>
-              <div className="text-base font-bold text-white uppercase tracking-wider">
-                SHOW LEADERBOARD
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Pushes official rankings and verified team scores to the projector screen.
-              </p>
+              <div className="text-sm font-bold text-white uppercase tracking-wider">LEADERBOARD</div>
             </div>
           </button>
 
@@ -201,7 +206,7 @@ export default function OrganizerDisplayControl() {
             type="button"
             onClick={() => handleSetMode("WAITING")}
             disabled={saving}
-            className={`p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
+            className={`p-4 sm:p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
               activeMode === "WAITING"
                 ? "bg-purple-950/30 border-purple-500 text-white shadow-lg shadow-purple-950/50 ring-1 ring-purple-500/50"
                 : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/30 hover:text-white"
@@ -211,24 +216,86 @@ export default function OrganizerDisplayControl() {
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
                 <Clock className="w-5 h-5" />
               </div>
-              {activeMode === "WAITING" && (
-                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/40 text-[10px] uppercase font-bold">
-                  ACTIVE
-                </span>
-              )}
             </div>
-
             <div>
-              <div className="text-base font-bold text-white uppercase tracking-wider">
-                SHOW WAITING SCREEN
+              <div className="text-sm font-bold text-white uppercase tracking-wider">WAITING</div>
+            </div>
+          </button>
+
+          {/* 4. SHOW IMAGE */}
+          <button
+            type="button"
+            onClick={() => handleSetMode("IMAGE")}
+            disabled={saving}
+            className={`p-4 sm:p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
+              activeMode === "IMAGE"
+                ? "bg-cyan-950/30 border-cyan-500 text-white shadow-lg shadow-cyan-950/50 ring-1 ring-cyan-500/50"
+                : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/30 hover:text-white"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <Image className="w-5 h-5" />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Displays "READY • WAITING FOR START" standby screen between rounds.
-              </p>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white uppercase tracking-wider">SHOW IMAGE</div>
+            </div>
+          </button>
+
+          {/* 5. SHOW TEXT */}
+          <button
+            type="button"
+            onClick={() => handleSetMode("TEXT")}
+            disabled={saving}
+            className={`p-4 sm:p-6 rounded-2xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between gap-4 ${
+              activeMode === "TEXT"
+                ? "bg-pink-950/30 border-pink-500 text-white shadow-lg shadow-pink-950/50 ring-1 ring-pink-500/50"
+                : "bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-muted-foreground hover:border-white/30 hover:text-white"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400">
+                <Type className="w-5 h-5" />
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white uppercase tracking-wider">SHOW TEXT</div>
             </div>
           </button>
         </div>
       </div>
+
+      {/* Configuration for Image and Text */}
+      <APBCard className="p-6 bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] space-y-4">
+        <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground font-bold border-b border-white/10 pb-2">
+          CUSTOM CONTENT CONFIGURATION
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">IMAGE URL</label>
+            <input 
+              type="text" 
+              value={imageUrl} 
+              onChange={e => setImageUrl(e.target.value)} 
+              placeholder="https://example.com/image.png"
+              className="w-full bg-black/50 border border-[var(--color-apb-surface-border)] rounded-md px-3 py-2 text-sm text-white font-mono"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">CUSTOM TEXT / RULES</label>
+            <textarea 
+              value={customText} 
+              onChange={e => setCustomText(e.target.value)} 
+              placeholder="Enter text to display..."
+              className="w-full bg-black/50 border border-[var(--color-apb-surface-border)] rounded-md px-3 py-2 text-sm text-white font-mono min-h-[100px]"
+            />
+          </div>
+          <APBButton onClick={handleUpdateContent} disabled={saving} size="sm">
+            {saving ? "SAVING..." : "UPDATE CONTENT"}
+          </APBButton>
+        </div>
+      </APBCard>
 
       {/* DISPLAY PREVIEW (§16) */}
       <div className="space-y-3">
@@ -251,6 +318,24 @@ export default function OrganizerDisplayControl() {
                 </div>
                 <div className="text-xl font-mono font-bold text-white uppercase">
                   Round 0{currentRound?.roundNumber || 1} Scores
+                </div>
+              </div>
+            ) : activeMode === "IMAGE" ? (
+              <div className="space-y-2">
+                <div className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-bold">
+                  CUSTOM IMAGE DISPLAY
+                </div>
+                <div className="text-sm font-mono text-white/50">
+                  {eventState?.displayImageUrl ? "Image is projected" : "No image provided"}
+                </div>
+              </div>
+            ) : activeMode === "TEXT" ? (
+              <div className="space-y-2">
+                <div className="text-xs font-mono text-pink-400 uppercase tracking-widest font-bold">
+                  CUSTOM TEXT / RULES
+                </div>
+                <div className="text-sm font-mono text-white/50">
+                  {eventState?.displayCustomText ? "Text is projected" : "No text provided"}
                 </div>
               </div>
             ) : activeMode === "WAITING" || (!currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT") ? (
