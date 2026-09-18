@@ -173,11 +173,13 @@ export interface FinalSubmissionPayload {
     imageUrl?: string;
     fileName?: string;
   };
+  quizAnswers?: Record<number, "A" | "B" | "C">;
+  isAutoSubmitted?: boolean;
   submittedBy: string;
 }
 
 export async function submitFinalResponse(payload: FinalSubmissionPayload): Promise<{ success: boolean; error?: string }> {
-  const { eventId, teamId, roundId, prompt, member1Data, member2Data, submittedBy } = payload;
+  const { eventId, teamId, roundId, prompt, member1Data, member2Data, quizAnswers, isAutoSubmitted, submittedBy } = payload;
   const docId = getSubmissionDocId(eventId, teamId, roundId);
   const now = Date.now();
 
@@ -196,7 +198,7 @@ export async function submitFinalResponse(payload: FinalSubmissionPayload): Prom
       }
 
       // 2. Authoritative check on deadline
-      if (roundData.endsAt && now > roundData.endsAt) {
+      if (roundData.endsAt && now > roundData.endsAt + 60000) {
         throw new Error("Deadline has passed. Submissions are no longer accepted.");
       }
 
@@ -207,20 +209,34 @@ export async function submitFinalResponse(payload: FinalSubmissionPayload): Prom
         throw new Error("Final submission already recorded for this round. Multiple submissions are not allowed.");
       }
 
-      // 4. Create authoritative final submission document
+      // 4. Evaluate Quiz if applicable
+    
+    let quizScore: number | undefined;
+    if (roundData.quizQuestions && quizAnswers) {
+      quizScore = 0;
+      for (const q of roundData.quizQuestions) {
+        if (q.correctAnswer && quizAnswers[q.id] === q.correctAnswer) {
+          quizScore += q.points || 1;
+        }
+      }
+    }
+
+
+    // 5. Create authoritative final submission document
       const newSubmission: Submission = {
-        id: docId,
-        eventId,
-        teamId,
-        roundId,
-        prompt: prompt.trim(),
-        member1Data: member1Data || { text: "" },
-        member2Data: member2Data || { text: "", imageUrl: "", fileName: "" },
-        submittedAt: now,
-        submittedBy,
-        status: "FINAL",
-        version: 1,
-      };
+      id: docId,
+      eventId,
+      teamId,
+      roundId,
+      prompt: prompt.trim(),
+      member1Data: member1Data || { text: "" },
+      member2Data: member2Data || { text: "", imageUrl: "", fileName: "" },
+      submittedAt: now,
+      submittedBy,
+      status: "FINAL",
+      version: 1,
+      ...(quizAnswers ? { quizAnswers, quizScore, isAutoSubmitted } : {}),
+    };
       transaction.set(subRef, newSubmission);
 
       // 5. Update team round state atomically

@@ -258,6 +258,7 @@ export interface Submission {
   // Quiz submission:
   quizAnswers?: Record<number, "A" | "B" | "C">;
   quizScore?: number;
+  isAutoSubmitted?: boolean;
   // Progressive stages submissions:
   stageSubmissions?: Record<number, StageSubmissionRecord>;
   progressiveStageSubmissions?: StageSubmissionRecord[];

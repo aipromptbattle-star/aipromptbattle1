@@ -125,23 +125,26 @@ export function QuizWorkspace({
     setSubmissionWarningOpen(true);
   };
 
-  const handleFinalSubmit = async (isAutoSubmit = false) => {
+  const handleFinalSubmit = useCallback(async (isAutoSubmit = false) => {
     if (isSubmitting || existingSubmission) return;
     setIsSubmitting(true);
     setSubmissionWarningOpen(false);
 
     try {
-      await submitFinalResponse(eventId, teamId, round.id, {
-        prompt: "QUIZ_SUBMISSION", // Required by schema but irrelevant here
+      await submitFinalResponse({
+        eventId,
+        teamId,
+        roundId: round.id,
+        prompt: "QUIZ_SUBMISSION",
         quizAnswers: answers,
-        version: Date.now(),
-        isAutoSubmitted: isAutoSubmit
-      }, "QUIZ");
+        isAutoSubmitted: isAutoSubmit,
+        submittedBy: teamId
+      });
     } catch (e) {
       console.error("Submission failed:", e);
     }
     setIsSubmitting(false);
-  };
+  }, [isSubmitting, existingSubmission, eventId, teamId, round.id, answers]);
 
   // Auto-submit at deadline
   const timeRemaining = round.endsAt ? round.endsAt - Date.now() : 0;
