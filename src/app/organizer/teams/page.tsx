@@ -468,7 +468,7 @@ export default function OrganizerTeams() {
                               }}>
                                 {team.active ? "Disable Team" : "Enable Team"}
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
+                                                            <DropdownMenuItem 
                                 disabled={teamSessions === 0}
                                 onClick={async () => {
                                   if (window.confirm(`Kill all active device sessions for ${team.teamId}?`)) {
@@ -478,6 +478,20 @@ export default function OrganizerTeams() {
                                 className="text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer"
                               >
                                 Kill Team Sessions ({teamSessions})
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={async () => {
+                                  if (window.confirm(`Are you absolutely sure you want to permanently delete ${team.teamId}?`)) {
+                                    try {
+                                      await deleteTeam(team.teamId);
+                                    } catch (e) {
+                                      alert("Delete failed: " + e.message);
+                                    }
+                                  }
+                                }}
+                                className="text-red-500 focus:text-red-500 focus:bg-red-500/10 cursor-pointer font-bold"
+                              >
+                                Delete Team
                               </DropdownMenuItem>
                             </DropdownMenuGroup>
                           </DropdownMenuContent>
