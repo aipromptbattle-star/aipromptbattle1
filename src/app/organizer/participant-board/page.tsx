@@ -12,8 +12,15 @@ import { ParticipantScreenOverlay } from "@/components/apb/ParticipantScreenOver
 import { Terminal, Play, Lock, AlertTriangle, Monitor, Copy, Info, CheckCircle2, LayoutTemplate } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// toast fallback (no sonner)
-const toast = { success: (m: string) => window.alert(m), error: (m: string) => window.alert("Error: " + m) };
+// Simple toast helper - uses browser notification
+function showToast(msg: string, type: "success" | "error" = "success") {
+  const el = document.createElement("div");
+  el.textContent = msg;
+  el.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:8px;font-family:monospace;font-size:13px;color:#fff;background:${type === "success" ? "#059669" : "#dc2626"};border:1px solid ${type === "success" ? "#10b981" : "#ef4444"};box-shadow:0 4px 20px #0004;transition:opacity .3s`;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 3000);
+}
+const toast = { success: (m: string) => showToast(m, "success"), error: (m: string) => showToast(m, "error") };
 
 const modes: { id: ParticipantScreenMode; label: string }[] = [
   { id: "AUTO", label: "AUTO / LIVE" },
