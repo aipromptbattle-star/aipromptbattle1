@@ -228,7 +228,8 @@ export interface TeamRoundState {
   eventId: string;
   teamId: string;
   roundId: string;
-  status: TeamRoundStatus;\n  overrideScreenMode?: ParticipantScreenMode | null;
+  status: TeamRoundStatus;
+  overrideScreenMode?: ParticipantScreenMode | null;
   startedAt?: number;
   submittedAt?: number;
   lastSavedAt?: number;

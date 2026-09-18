@@ -23,7 +23,7 @@ export function GlobalEventHeader() {
     });
 
     // Track active teamRoundState if round is LIVE
-    if (!eventState?.currentRoundId || !currentRound || currentRound.status === "COMPLETED") {
+    if (!eventState?.currentRoundId || !currentRound || currentRound.status === "ENDED") {
       setSubmittedCount(0);
       setWorkingCount(0);
       return () => unsubscribeSessions();
@@ -61,7 +61,6 @@ export function GlobalEventHeader() {
         
         <StatusBadge 
           status={eventState.status} 
-          variant={eventState.status === "LIVE" ? "live" : "neutral"}
           className="animate-none"
         />
 

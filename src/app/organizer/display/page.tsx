@@ -6,12 +6,14 @@ import { APBCard } from "@/components/apb/APBCard";
 import { APBButton } from "@/components/apb/APBButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
 import { useEventState, updateEventSettings } from "@/lib/firebase/events";
 import { DisplayMode, DisplayBoardState, PresentationTemplate } from "@/lib/firebase/schema";
 import { Monitor, ExternalLink, Play, Lock, AlertTriangle, Copy, Info, CheckCircle2, LayoutTemplate } from "lucide-react";
-import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// toast fallback (no sonner)
+const toast = { success: (m: string) => window.alert(m), error: (m: string) => window.alert("Error: " + m) };
 // Note: We use an iframe or a simplified renderer for preview. For a real preview, we should render PublicHostDisplay inside an iframe or scaled container.
 
 const modes: { id: DisplayMode; label: string }[] = [
@@ -96,10 +98,10 @@ export default function OrganizerDisplayControl() {
 
       await updateEventSettings({
         displayOverride: selectedMode,
-        displayHeading: draftHeading || null,
-        displaySubheading: draftSubheading || null,
-        displayBody: draftBody || null,
-        displayImageUrl: draftImageUrl || null,
+        displayHeading: draftHeading || undefined,
+        displaySubheading: draftSubheading || undefined,
+        displayBody: draftBody || undefined,
+        displayImageUrl: draftImageUrl || undefined,
         displayBoardState: {
           mode: selectedMode,
           activeTemplate: selectedMode === "AUTOMATIC" ? undefined : newTemplate,
@@ -192,11 +194,11 @@ export default function OrganizerDisplayControl() {
               {selectedMode !== "IMAGE" && (
                 <div className="space-y-1.5">
                   <Label>Body Text</Label>
-                  <Textarea 
+                  <textarea 
                     value={draftBody} 
                     onChange={e => setDraftBody(e.target.value)} 
                     placeholder="Main content body..."
-                    className="font-mono text-sm min-h-[120px]"
+                    className="font-mono text-sm min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   />
                 </div>
               )}

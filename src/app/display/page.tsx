@@ -234,12 +234,7 @@ export default function PublicHostDisplay() {
 
       {/* MAIN PRESENTATION ARENA */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-4 text-center max-w-6xl mx-auto w-full h-full">
-          <ParticipantScreenOverlay
-            globalScreenMode={displayOverride as any}
-            boardState={eventState?.displayBoardState as any}
-          >
-
-        {/* CUSTOM IMAGE MODE */}
+          {/* CUSTOM IMAGE MODE */}
         {displayOverride === "IMAGE" && (
           <div className="w-full h-full flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-300">
             {eventState?.displayImageUrl ? (
@@ -478,24 +473,8 @@ export default function PublicHostDisplay() {
                   {activeConstraint?.statement}
                 </div>
               </div>
-            )}
-
-            {/* PROGRESSIVE CONSTRAINT STATEMENT (Only for progressive rounds) */}
-            {isProgressive && activeConstraint && !constraintRevealActive && activeConstraint.statement && (
-              <div className="w-full max-w-3xl p-6 sm:p-8 rounded-2xl bg-black/60 border border-white/15 backdrop-blur-md shadow-2xl space-y-2">
-                <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold">
-                  {currentStageNum === 1 ? "INITIAL STATEMENT" : `CONSTRAINT 0${currentStageNum - 1}`}
-                </div>
-                <div className="text-lg sm:text-2xl font-mono font-bold text-white tracking-wide leading-relaxed">
-                  {activeConstraint.statement}
-                </div>
-              </div>
-            )}
-
-          </div>
-        )}
-
-      </main>
+            )}\n\n          </div>
+        )}\n\n      </main>
 
       {/* Subtle bottom buffer */}
       <div className="h-6" />

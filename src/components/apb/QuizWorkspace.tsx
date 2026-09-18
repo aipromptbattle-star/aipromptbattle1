@@ -96,8 +96,8 @@ export function QuizWorkspace({
 
   const handleOptionSelect = (optionIdx: number) => {
     if (existingSubmission) return;
-    const optionLetter = optionIdx === 0 ? "A" : optionIdx === 1 ? "B" : "C";
-    const newAnswers = { ...answers, [currentQuestion.id]: optionLetter };
+    const optionLetter: "A" | "B" | "C" = optionIdx === 0 ? "A" : optionIdx === 1 ? "B" : "C";
+    const newAnswers: Record<number, "A" | "B" | "C"> = { ...answers, [currentQuestion.id]: optionLetter };
     setAnswers(newAnswers);
     saveDraft(newAnswers, visited);
   };
@@ -242,12 +242,8 @@ export function QuizWorkspace({
             )}
           </div>
           <CircularTimer
-            durationSeconds={round.durationSeconds}
-            startsAt={round.startedAt}
-            endsAt={round.endsAt}
-            pausedRemainingSeconds={round.pausedRemainingSeconds}
-            status={round.status}
-            size="sm"
+            round={round}
+            size={64}
           />
         </APBCard>
       </div>

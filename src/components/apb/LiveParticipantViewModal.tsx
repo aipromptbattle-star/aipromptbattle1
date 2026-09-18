@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { APBButton } from "./APBButton";
 import { useDraft } from "@/lib/firebase/drafts";
-import { ParticipantScreenMode, ParticipantScreenState, Round } from "@/lib/firebase/schema";
+import { ParticipantScreenMode, Round } from "@/lib/firebase/schema";
 import { doc, updateDoc, deleteDoc, addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Lock, Unlock, Clock, ShieldAlert, MonitorPlay, MessageSquare, AlertTriangle, Eye } from "lucide-react";
@@ -17,7 +17,7 @@ interface LiveParticipantViewModalProps {
   teamId: string | null;
   eventId: string;
   round: Round | null;
-  globalScreenState?: ParticipantScreenState | null;
+  globalScreenState?: ParticipantScreenMode | null;
   teamOverrideMode?: ParticipantScreenMode | null;
   isOnline?: boolean;
 }
@@ -36,7 +36,7 @@ export function LiveParticipantViewModal({
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ mode: ParticipantScreenMode | "RESUME"; title: string; desc: string; danger?: boolean } | null>(null);
 
-  const currentMode = teamOverrideMode || globalScreenState?.globalScreenMode || "NORMAL";
+  const currentMode = teamOverrideMode || globalScreenState || "NORMAL";
 
   const handleUpdateOverride = async (mode: ParticipantScreenMode | "RESUME") => {
     if (!teamId || !round) return;
@@ -46,13 +46,13 @@ export function LiveParticipantViewModal({
           overrideScreenMode: null,
           updatedAt: Date.now(),
         });
-      }
-      await addDoc(collection(db, "auditLogs"), { action: "TEAM_SCREEN_OVERRIDE", mode, teamId, eventId, timestamp: Date.now() }); else {
+      } else {
         await updateDoc(doc(db, `events/${eventId}/teamsRoundState/${teamId}_${round.id}`), {
           overrideScreenMode: mode,
           updatedAt: Date.now(),
         });
       }
+      await addDoc(collection(db, "auditLogs"), { action: "TEAM_SCREEN_OVERRIDE", mode, teamId, eventId, timestamp: Date.now() });
       setConfirmDialogOpen(false);
     } catch (e) {
       console.error("Failed to update override:", e);

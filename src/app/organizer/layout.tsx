@@ -46,6 +46,8 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
     { name: "Judging", href: "/organizer/judging", icon: Star },
     { name: "Participant Board", href: "/organizer/participant-board", icon: Monitor },
     { name: "Display", href: "/organizer/display", icon: Monitor },
+    { name: "Results", href: "/organizer/results", icon: Trophy },
+    { name: "Screen Lab", href: "/organizer/screen-lab", icon: Maximize },
     { name: "Sessions", href: "/organizer/sessions", icon: ShieldAlert },
     { name: "System", href: "/organizer/system", icon: Settings },
   ];

@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { APBCard } from "./APBCard";
 import { APBButton } from "./APBButton";
 import { BroadcastMessageDialog } from "./BroadcastMessageDialog";
-import { ParticipantScreenMode, ParticipantScreenState } from "@/lib/firebase/schema";
+import { ParticipantScreenMode } from "@/lib/firebase/schema";
 import { Lock, Unlock, Clock, AlertTriangle, MessageSquare, Info } from "lucide-react";
 import { doc, updateDoc, addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 
 interface ParticipantControlPanelProps {
   eventId: string;
-  currentScreenState?: ParticipantScreenState;
+  currentScreenState?: ParticipantScreenMode;
   onlineCount: number;
 }
 
@@ -22,8 +22,8 @@ export function ParticipantControlPanel({ eventId, currentScreenState, onlineCou
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ mode: ParticipantScreenMode; title: string; desc: string; danger?: boolean } | null>(null);
 
-  const currentMode = currentScreenState?.globalScreenMode || "NORMAL";
-  const hasActiveBroadcast = currentScreenState?.broadcastMessage && (!currentScreenState.broadcastMessage.expiresAt || currentScreenState.broadcastMessage.expiresAt > Date.now());
+  const currentMode = currentScreenState || "NORMAL";
+  const hasActiveBroadcast = false;
 
   const handleUpdateMode = async (mode: ParticipantScreenMode) => {
     try {
@@ -126,7 +126,7 @@ export function ParticipantControlPanel({ eventId, currentScreenState, onlineCou
               {hasActiveBroadcast ? (
                 <p className="text-xs text-[var(--color-apb-cyan)] flex items-center gap-1.5">
                   <Info className="w-3.5 h-3.5" />
-                  Active: "{currentScreenState!.broadcastMessage!.heading}"
+                  Active broadcast
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">No active announcements</p>

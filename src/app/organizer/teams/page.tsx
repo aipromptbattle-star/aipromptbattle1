@@ -187,7 +187,7 @@ export default function OrganizerTeams() {
             <input
               type="text"
               value={rangePrefix}
-              onChange={(e) => setRangePrefix(e.target.value.toUpperCase())}
+              onChange={(e: any) => setRangePrefix(e.target.value.toUpperCase())}
               placeholder="APB"
               className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white uppercase focus:outline-none focus:border-[var(--color-apb-cyan)]"
             />
@@ -198,7 +198,7 @@ export default function OrganizerTeams() {
             <input
               type="text"
               value={rangeSeparator}
-              onChange={(e) => setRangeSeparator(e.target.value)}
+              onChange={(e: any) => setRangeSeparator(e.target.value)}
               placeholder="-"
               className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
             />
@@ -210,7 +210,7 @@ export default function OrganizerTeams() {
               type="number"
               min={1}
               value={rangeStart}
-              onChange={(e) => setRangeStart(parseInt(e.target.value) || 1)}
+              onChange={(e: any) => setRangeStart(parseInt(e.target.value) || 1)}
               className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
             />
           </div>
@@ -221,7 +221,7 @@ export default function OrganizerTeams() {
               type="number"
               min={rangeStart}
               value={rangeEnd}
-              onChange={(e) => setRangeEnd(parseInt(e.target.value) || rangeStart)}
+              onChange={(e: any) => setRangeEnd(parseInt(e.target.value) || rangeStart)}
               className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
             />
           </div>
@@ -233,7 +233,7 @@ export default function OrganizerTeams() {
               min={1}
               max={6}
               value={rangePadding}
-              onChange={(e) => setRangePadding(parseInt(e.target.value) || 3)}
+              onChange={(e: any) => setRangePadding(parseInt(e.target.value) || 3)}
               className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
             />
           </div>
@@ -243,7 +243,7 @@ export default function OrganizerTeams() {
             <input
               type="text"
               value={rangeAccessCode}
-              onChange={(e) => setRangeAccessCode(e.target.value.toUpperCase())}
+              onChange={(e: any) => setRangeAccessCode(e.target.value.toUpperCase())}
               placeholder="TEST26"
               className="w-full h-9 px-3 rounded bg-black/60 border border-white/10 text-xs text-white uppercase focus:outline-none focus:border-[var(--color-apb-cyan)]"
             />
@@ -330,7 +330,7 @@ export default function OrganizerTeams() {
               type="url"
               placeholder="https://docs.google.com/spreadsheets/d/.../edit"
               value={sheetUrl}
-              onChange={(e) => setSheetUrl(e.target.value)}
+              onChange={(e: any) => setSheetUrl(e.target.value)}
               className="flex-1 w-full h-10 px-3.5 rounded-md bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
             />
             <APBButton
@@ -357,7 +357,7 @@ export default function OrganizerTeams() {
             placeholder="Search Team ID or Name..." 
             className="max-w-xs font-mono" 
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e: any) => setSearch(e.target.value)}
           />
         </div>
         
@@ -484,7 +484,7 @@ export default function OrganizerTeams() {
                                   if (window.confirm(`Are you absolutely sure you want to permanently delete ${team.teamId}?`)) {
                                     try {
                                       await deleteTeam(team.teamId);
-                                    } catch (e) {
+                                    } catch (e: any) {
                                       alert("Delete failed: " + e.message);
                                     }
                                   }

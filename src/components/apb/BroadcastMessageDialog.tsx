@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { APBButton } from "./APBButton";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+// RadioGroup removed - not available
 
 interface BroadcastMessageDialogProps {
   open: boolean;
@@ -75,24 +75,24 @@ export function BroadcastMessageDialog({ open, onOpenChange, onSend }: Broadcast
 
           <div className="grid gap-3">
             <Label className="text-xs font-mono text-muted-foreground uppercase">Duration</Label>
-            <RadioGroup value={duration} onValueChange={setDuration} className="grid grid-cols-2 gap-4">
+            <div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="10" id="r1" />
+                <input type="radio" />
                 <Label htmlFor="r1">10 seconds</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="30" id="r2" />
+                <input type="radio" />
                 <Label htmlFor="r2">30 seconds</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="60" id="r3" />
+                <input type="radio" />
                 <Label htmlFor="r3">60 seconds</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="forever" id="r4" />
+                <input type="radio" />
                 <Label htmlFor="r4">Until dismissed</Label>
               </div>
-            </RadioGroup>
+            </div>
           </div>
           
           <div className="rounded-md border border-[var(--color-apb-surface-border)] p-4 bg-black/40">

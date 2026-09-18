@@ -4,13 +4,14 @@ import React, { useEffect, useState } from "react";
 import { ParticipantScreenMode, ParticipantBoardState, GlobalCountdown } from "@/lib/firebase/schema";
 import { APBCard } from "./APBCard";
 import { Lock, AlertTriangle, Clock, Info, CheckCircle2, Gavel, CalendarClock } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+// framer-motion replaced with CSS animations
 import { useCurrentRound, useEventState } from "@/lib/firebase/events";
 
 interface ParticipantScreenOverlayProps {
   globalScreenMode?: ParticipantScreenMode;
   overrideScreenMode?: ParticipantScreenMode | null;
   boardState?: ParticipantBoardState;
+  mockGlobalCountdown?: GlobalCountdown;
   children: React.ReactNode;
 }
 
@@ -18,10 +19,11 @@ export function ParticipantScreenOverlay({
   globalScreenMode = "AUTO",
   overrideScreenMode,
   boardState,
+  mockGlobalCountdown,
   children,
 }: ParticipantScreenOverlayProps) {
   const { eventState } = useEventState();
-  const globalCountdown: GlobalCountdown | undefined = eventState?.globalCountdown;
+  const globalCountdown: GlobalCountdown | undefined = mockGlobalCountdown || eventState?.globalCountdown;
 
   // Real countdown logic
   const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
@@ -81,7 +83,7 @@ export function ParticipantScreenOverlay({
       );
     }
 
-    if (finalMode === "ROUND_INTRO" || finalMode === "EVENT_STATUS") {
+    if (finalMode === "ROUND_INTRO" || (finalMode as string) === "EVENT_STATUS") {
       return (
         <div className="space-y-6">
           <CalendarClock className="w-20 h-20 text-[var(--color-apb-cyan)] mx-auto" />
@@ -145,13 +147,13 @@ export function ParticipantScreenOverlay({
       );
     }
 
-        if (finalMode === "ANNOUNCEMENT" || finalMode === "PARTICIPANT_SYNC") {
+        if (finalMode === "ANNOUNCEMENT" || (finalMode as string) === "PARTICIPANT_SYNC") {
       return (
         <div className="space-y-6 max-w-2xl mx-auto">
           <Info className="w-16 h-16 text-[var(--color-apb-cyan)] mx-auto" />
           <div>
             <h2 className="text-3xl font-bold tracking-widest uppercase text-white font-mono mb-4">
-              {template.heading || (finalMode === "PARTICIPANT_SYNC" ? "ANNOUNCEMENT" : "ANNOUNCEMENT")}
+              {template.heading || ((finalMode as string) === "PARTICIPANT_SYNC" ? "ANNOUNCEMENT" : "ANNOUNCEMENT")}
             </h2>
             {(template.subheading) && (
               <h3 className="text-xl text-[var(--color-apb-cyan)] uppercase font-mono mb-4">
@@ -255,21 +257,13 @@ export function ParticipantScreenOverlay({
       </div>
 
       {/* Fullscreen Overlay Layer */}
-      <AnimatePresence>
-        {isOverlayMode && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 z-40 flex items-center justify-center p-4 md:p-8 overflow-y-auto bg-background/80 backdrop-blur-xl"
-          >
+      {isOverlayMode && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center p-4 md:p-8 overflow-y-auto bg-background/80 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-300">
             <div className="max-w-4xl w-full text-center py-12">
               {renderContent()}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }
