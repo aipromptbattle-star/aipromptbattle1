@@ -234,6 +234,10 @@ export default function PublicHostDisplay() {
 
       {/* MAIN PRESENTATION ARENA */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-4 text-center max-w-6xl mx-auto w-full h-full">
+          <ParticipantScreenOverlay
+            globalScreenMode={displayOverride as any}
+            boardState={eventState?.displayBoardState as any}
+          >
 
         {/* CUSTOM IMAGE MODE */}
         {displayOverride === "IMAGE" && (

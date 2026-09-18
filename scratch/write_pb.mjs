@@ -1,4 +1,7 @@
-"use client";
+
+import fs from "fs";
+
+const content = `"use client";
 
 import React, { useState, useEffect } from "react";
 import { APBCard } from "@/components/apb/APBCard";
@@ -78,7 +81,7 @@ export default function ParticipantBoardPage() {
           updatedAt: Date.now()
         }
       });
-      toast.success(`${selectedMode} template saved`);
+      toast.success(\`\${selectedMode} template saved\`);
     } catch (e: any) {
       toast.error(e.message || "Failed to save template");
     }
@@ -106,7 +109,7 @@ export default function ParticipantBoardPage() {
           updatedAt: Date.now()
         }
       });
-      toast.success(`Active mode set to ${selectedMode}`);
+      toast.success(\`Active mode set to \${selectedMode}\`);
     } catch (e: any) {
       toast.error(e.message || "Failed to update participants");
     }
@@ -135,11 +138,6 @@ export default function ParticipantBoardPage() {
   const syncToDisplay = async () => {
     try {
       await updateEventSettings({
-        displayOverride: "PARTICIPANT_SYNC" as any,
-        displayHeading: draftHeading || null,
-        displaySubheading: draftSubheading || null,
-        displayBody: draftBody || null,
-        displayImageUrl: draftImageUrl || null,
         displayBoardState: {
           mode: "PARTICIPANT_SYNC" as any,
           activeTemplate: {
@@ -363,3 +361,8 @@ export default function ParticipantBoardPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync("src/app/organizer/participant-board/page.tsx", content);
+console.log("Updated PB Page");
+

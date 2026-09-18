@@ -1,4 +1,7 @@
-"use client";
+
+import fs from "fs";
+
+const content = `"use client";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -75,7 +78,7 @@ export default function OrganizerDisplayControl() {
           updatedAt: Date.now()
         }
       });
-      toast.success(`${selectedMode} template saved`);
+      toast.success(\`\${selectedMode} template saved\`);
     } catch (e: any) {
       toast.error(e.message || "Failed to save template");
     }
@@ -96,10 +99,6 @@ export default function OrganizerDisplayControl() {
 
       await updateEventSettings({
         displayOverride: selectedMode,
-        displayHeading: draftHeading || null,
-        displaySubheading: draftSubheading || null,
-        displayBody: draftBody || null,
-        displayImageUrl: draftImageUrl || null,
         displayBoardState: {
           mode: selectedMode,
           activeTemplate: selectedMode === "AUTOMATIC" ? undefined : newTemplate,
@@ -107,7 +106,7 @@ export default function OrganizerDisplayControl() {
           updatedAt: Date.now()
         }
       });
-      toast.success(`Active mode set to ${selectedMode}`);
+      toast.success(\`Active mode set to \${selectedMode}\`);
     } catch (e: any) {
       toast.error(e.message || "Failed to update display");
     }
@@ -280,3 +279,8 @@ export default function OrganizerDisplayControl() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync("src/app/organizer/display/page.tsx", content);
+console.log("Updated Display Config");
+

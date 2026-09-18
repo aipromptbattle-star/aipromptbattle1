@@ -1,16 +1,17 @@
+
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ParticipantScreenMode, ParticipantBoardState, GlobalCountdown } from "@/lib/firebase/schema";
+import { ParticipantScreenMode, ParticipantScreenState } from "@/lib/firebase/schema";
 import { APBCard } from "./APBCard";
-import { Lock, AlertTriangle, Clock, Info, CheckCircle2, Gavel, CalendarClock } from "lucide-react";
+import { Lock, AlertTriangle, Clock, Info, CheckCircle2, ChevronRight, Gavel, CalendarClock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCurrentRound, useEventState } from "@/lib/firebase/events";
+import { useCurrentRound } from "@/lib/firebase/events";
 
 interface ParticipantScreenOverlayProps {
   globalScreenMode?: ParticipantScreenMode;
   overrideScreenMode?: ParticipantScreenMode | null;
-  boardState?: ParticipantBoardState;
+  boardState?: ParticipantScreenState;
   children: React.ReactNode;
 }
 
@@ -20,37 +21,37 @@ export function ParticipantScreenOverlay({
   boardState,
   children,
 }: ParticipantScreenOverlayProps) {
-  const { eventState } = useEventState();
-  const globalCountdown: GlobalCountdown | undefined = eventState?.globalCountdown;
+  const finalMode = overrideScreenMode || globalScreenMode || "AUTO";
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const broadcastMessage = boardState?.broadcastMessage;
+  const { currentRound } = useCurrentRound(boardState?.targetRoundId || null);
 
-  // Real countdown logic
-  const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
   useEffect(() => {
-    if (globalCountdown?.active && globalCountdown.endsAt) {
-      const interval = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((globalCountdown.endsAt - Date.now()) / 1000));
-        setCountdownRemaining(remaining);
-      }, 250);
-      return () => clearInterval(interval);
+    if (broadcastMessage) {
+      if (broadcastMessage.expiresAt && Date.now() > broadcastMessage.expiresAt) {
+        setShowBroadcast(false);
+      } else {
+        setShowBroadcast(true);
+      }
     } else {
-      setCountdownRemaining(null);
+      setShowBroadcast(false);
     }
-  }, [globalCountdown?.active, globalCountdown?.endsAt]);
+  }, [broadcastMessage]);
 
-  // Derived state
-  const isCountdownActive = countdownRemaining !== null && countdownRemaining >= 0 && globalCountdown?.active;
-  const isGo = countdownRemaining === 0 && globalCountdown?.active; // Briefly show GO
-  
-  // Base final mode
-  let finalMode = overrideScreenMode || globalScreenMode || "AUTO";
-  
-  // COUNTDOWN has highest priority after LOCKED
-  if (isCountdownActive || isGo) {
-    finalMode = "COUNTDOWN";
-  }
-
-  const template = boardState?.activeTemplate || {};
+  useEffect(() => {
+    if (finalMode === "COUNTDOWN" && boardState?.countdownEndsAt) {
+      const interval = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((boardState.countdownEndsAt! - Date.now()) / 1000));
+        setTimeRemaining(remaining);
+        if (remaining === 0) {
+          clearInterval(interval);
+        }
+      }, 500);
+      return () => clearInterval(interval);
+    }
+  }, [finalMode, boardState?.countdownEndsAt]);
 
   const renderContent = () => {
     if (finalMode === "RULES") {
@@ -59,21 +60,21 @@ export function ParticipantScreenOverlay({
           <Gavel className="w-16 h-16 text-[var(--color-apb-cyan)] mx-auto" />
           <div>
             <h2 className="text-3xl font-bold tracking-widest uppercase text-white font-mono mb-4">
-              {template.heading || "EVENT RULES"}
+              {boardState?.heading || "EVENT RULES"}
             </h2>
-            {template.subheading && (
+            {boardState?.subheading && (
               <h3 className="text-xl text-[var(--color-apb-cyan)] uppercase font-mono mb-6 tracking-wide">
-                {template.subheading}
+                {boardState.subheading}
               </h3>
             )}
-            {template.body && (
+            {boardState?.body && (
               <div className="text-slate-300 leading-relaxed text-lg whitespace-pre-wrap text-left bg-black/40 p-6 rounded-lg border border-[var(--color-apb-surface-border)]">
-                {template.body}
+                {boardState.body}
               </div>
             )}
-            {template.imageUrl && (
+            {boardState?.imageUrl && (
               <div className="mt-6">
-                <img src={template.imageUrl} alt="Rules" className="max-w-full h-auto rounded-lg mx-auto" />
+                <img src={boardState.imageUrl} alt="Rules" className="max-w-full h-auto rounded-lg mx-auto" />
               </div>
             )}
           </div>
@@ -81,22 +82,22 @@ export function ParticipantScreenOverlay({
       );
     }
 
-    if (finalMode === "ROUND_INTRO" || finalMode === "EVENT_STATUS") {
+    if (finalMode === "ROUND_INTRO") {
       return (
         <div className="space-y-6">
           <CalendarClock className="w-20 h-20 text-[var(--color-apb-cyan)] mx-auto" />
           <div>
             <h2 className="text-4xl font-bold tracking-widest uppercase text-white font-mono mb-3">
-              {template.heading || "GET READY"}
+              {boardState?.heading || "GET READY"}
             </h2>
-            {template.subheading && (
+            {boardState?.subheading && (
               <h3 className="text-2xl text-[var(--color-apb-cyan)] uppercase font-mono mb-6 tracking-wide">
-                {template.subheading}
+                {boardState.subheading}
               </h3>
             )}
-            {template.body && (
-              <p className="text-xl text-slate-300 max-w-xl mx-auto whitespace-pre-wrap">
-                {template.body}
+            {boardState?.body && (
+              <p className="text-xl text-slate-300 max-w-xl mx-auto">
+                {boardState.body}
               </p>
             )}
           </div>
@@ -105,28 +106,25 @@ export function ParticipantScreenOverlay({
     }
 
     if (finalMode === "COUNTDOWN") {
-      const displayNum = isGo ? "GO" : (countdownRemaining !== null ? countdownRemaining : (template.durationSeconds || 5));
-      
       return (
         <div className="space-y-6">
           <div className="mb-8">
             <h2 className="text-3xl font-bold tracking-widest uppercase text-[var(--color-apb-cyan)] font-mono">
-              {globalCountdown?.heading || template.heading || "STARTING IN"}
+              {boardState?.heading || "STARTING IN"}
             </h2>
-            {(globalCountdown?.subheading || template.subheading) && (
-              <h3 className="text-xl text-white uppercase font-mono mt-2">
-                {globalCountdown?.subheading || template.subheading}
-              </h3>
-            )}
           </div>
           <div className="text-[120px] leading-none font-bold font-mono tracking-tighter text-white drop-shadow-[0_0_20px_rgba(0,240,255,0.5)]">
-            {displayNum}
+            {timeRemaining > 0 ? timeRemaining : "GO"}
           </div>
         </div>
       );
     }
 
     if (finalMode === "CONSTRAINT_REVEAL") {
+      const stage = currentRound?.templateType === "PROGRESSIVE_CONSTRAINT" && boardState?.targetStage 
+        ? currentRound.stages[boardState.targetStage - 1] 
+        : null;
+
       return (
         <div className="space-y-6 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 font-mono text-sm tracking-widest uppercase mb-4">
@@ -135,39 +133,32 @@ export function ParticipantScreenOverlay({
           </div>
           <div>
             <h2 className="text-3xl font-bold tracking-widest uppercase text-white font-mono mb-4">
-              {template.heading || "CONSTRAINT REVEAL"}
+              {boardState?.heading || "CONSTRAINT REVEAL"}
             </h2>
             <div className="text-amber-300 leading-relaxed text-2xl whitespace-pre-wrap bg-black/60 p-8 rounded-lg border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.1)]">
-              {template.body || "Constraint information will appear here."}
+              {boardState?.body || stage?.constraint || "Constraint information will appear here."}
             </div>
           </div>
         </div>
       );
     }
 
-        if (finalMode === "ANNOUNCEMENT" || finalMode === "PARTICIPANT_SYNC") {
+    if (finalMode === "ANNOUNCEMENT") {
       return (
-        <div className="space-y-6 max-w-2xl mx-auto">
+        <div className="space-y-6">
           <Info className="w-16 h-16 text-[var(--color-apb-cyan)] mx-auto" />
           <div>
             <h2 className="text-3xl font-bold tracking-widest uppercase text-white font-mono mb-4">
-              {template.heading || (finalMode === "PARTICIPANT_SYNC" ? "ANNOUNCEMENT" : "ANNOUNCEMENT")}
+              {boardState?.heading || broadcastMessage?.heading || "ANNOUNCEMENT"}
             </h2>
-            {(template.subheading) && (
+            {(boardState?.subheading) && (
               <h3 className="text-xl text-[var(--color-apb-cyan)] uppercase font-mono mb-4">
-                {template.subheading}
+                {boardState.subheading}
               </h3>
             )}
-            {template.body && (
-              <p className="text-xl text-slate-300 mx-auto whitespace-pre-wrap text-left bg-black/40 p-6 rounded-lg border border-[var(--color-apb-surface-border)]">
-                {template.body}
-              </p>
-            )}
-            {template.imageUrl && (
-              <div className="mt-6">
-                <img src={template.imageUrl} alt="Announcement" className="max-w-full h-auto rounded-lg mx-auto" />
-              </div>
-            )}
+            <p className="text-xl text-slate-300 max-w-xl mx-auto whitespace-pre-wrap">
+              {boardState?.body || broadcastMessage?.message || "Please pay attention to the organizer."}
+            </p>
           </div>
         </div>
       );
@@ -179,10 +170,10 @@ export function ParticipantScreenOverlay({
           <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto animate-pulse" />
           <div>
             <h2 className="text-3xl font-bold tracking-widest uppercase text-amber-500 font-mono mb-3">
-              {template.heading || "EVENT PAUSED"}
+              {boardState?.heading || "EVENT PAUSED"}
             </h2>
-            <p className="text-xl text-slate-300 whitespace-pre-wrap">
-              {template.body || "Please remain on this screen. Further instructions will appear here."}
+            <p className="text-xl text-slate-300">
+              {boardState?.body || "Please remain on this screen. Further instructions will appear here."}
             </p>
           </div>
         </div>
@@ -195,10 +186,10 @@ export function ParticipantScreenOverlay({
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
           <div>
             <h2 className="text-3xl font-bold tracking-widest uppercase text-white font-mono mb-3">
-              {template.heading || "ROUND COMPLETE"}
+              {boardState?.heading || "ROUND COMPLETE"}
             </h2>
-            <p className="text-xl text-slate-400 whitespace-pre-wrap">
-              {template.body || "Please wait for further instructions."}
+            <p className="text-xl text-slate-400">
+              {boardState?.body || "Please wait for further instructions."}
             </p>
           </div>
         </div>
@@ -211,10 +202,10 @@ export function ParticipantScreenOverlay({
           <Lock className="w-16 h-16 text-destructive mx-auto" />
           <div>
             <h2 className="text-3xl font-bold tracking-widest uppercase text-destructive font-mono mb-3">
-              {template.heading || "WORKSPACE LOCKED"}
+              {boardState?.heading || "WORKSPACE LOCKED"}
             </h2>
-            <p className="text-xl text-slate-400 whitespace-pre-wrap">
-              {template.body || "Please wait for organizer instructions. Your work has been preserved."}
+            <p className="text-xl text-slate-400">
+              {boardState?.body || "Please wait for organizer instructions. Your work has been preserved."}
             </p>
           </div>
         </div>
@@ -227,10 +218,10 @@ export function ParticipantScreenOverlay({
           <Clock className="w-16 h-16 text-[var(--color-apb-cyan)] mx-auto animate-pulse" />
           <div>
             <h2 className="text-3xl font-bold tracking-widest uppercase text-white font-mono mb-3">
-              {template.heading || "Please Wait"}
+              Please Wait
             </h2>
-            <p className="text-xl text-slate-400 whitespace-pre-wrap">
-              {template.body || "The organizer is preparing the next stage."}
+            <p className="text-xl text-slate-400">
+              The organizer is preparing the next stage.
             </p>
           </div>
         </div>
@@ -240,8 +231,7 @@ export function ParticipantScreenOverlay({
     return null;
   };
 
-    const overlayModes = ["RULES", "ROUND_INTRO", "EVENT_STATUS", "COUNTDOWN", "CONSTRAINT_REVEAL", "ANNOUNCEMENT", "PAUSED", "EMERGENCY", "ROUND_COMPLETE", "LOCKED", "WAITING", "PARTICIPANT_SYNC"];
-  const isOverlayMode = overlayModes.includes(finalMode);
+  const isOverlayMode = finalMode !== "AUTO" && finalMode !== "NORMAL";
 
   return (
     <div className="relative flex-1 flex flex-col w-full h-full">
@@ -253,6 +243,32 @@ export function ParticipantScreenOverlay({
       >
         {children}
       </div>
+
+      {/* Floating Broadcast Toast (if normal mode but broadcast exists) */}
+      <AnimatePresence>
+        {!isOverlayMode && showBroadcast && broadcastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-lg"
+          >
+            <APBCard className="p-4 border-[var(--color-apb-cyan)]/50 shadow-[0_0_20px_rgba(0,240,255,0.2)] bg-background/95 backdrop-blur-md">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-[var(--color-apb-cyan)] mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="text-sm font-bold tracking-widest text-white uppercase font-mono mb-1">
+                    {broadcastMessage.heading}
+                  </h3>
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    {broadcastMessage.message}
+                  </p>
+                </div>
+              </div>
+            </APBCard>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Fullscreen Overlay Layer */}
       <AnimatePresence>
@@ -273,3 +289,4 @@ export function ParticipantScreenOverlay({
     </div>
   );
 }
+

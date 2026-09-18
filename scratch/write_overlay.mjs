@@ -1,4 +1,7 @@
-"use client";
+
+import fs from "fs";
+
+const content = `"use client";
 
 import React, { useEffect, useState } from "react";
 import { ParticipantScreenMode, ParticipantBoardState, GlobalCountdown } from "@/lib/firebase/schema";
@@ -81,7 +84,7 @@ export function ParticipantScreenOverlay({
       );
     }
 
-    if (finalMode === "ROUND_INTRO" || finalMode === "EVENT_STATUS") {
+    if (finalMode === "ROUND_INTRO") {
       return (
         <div className="space-y-6">
           <CalendarClock className="w-20 h-20 text-[var(--color-apb-cyan)] mx-auto" />
@@ -145,29 +148,22 @@ export function ParticipantScreenOverlay({
       );
     }
 
-        if (finalMode === "ANNOUNCEMENT" || finalMode === "PARTICIPANT_SYNC") {
+    if (finalMode === "ANNOUNCEMENT") {
       return (
-        <div className="space-y-6 max-w-2xl mx-auto">
+        <div className="space-y-6">
           <Info className="w-16 h-16 text-[var(--color-apb-cyan)] mx-auto" />
           <div>
             <h2 className="text-3xl font-bold tracking-widest uppercase text-white font-mono mb-4">
-              {template.heading || (finalMode === "PARTICIPANT_SYNC" ? "ANNOUNCEMENT" : "ANNOUNCEMENT")}
+              {template.heading || "ANNOUNCEMENT"}
             </h2>
             {(template.subheading) && (
               <h3 className="text-xl text-[var(--color-apb-cyan)] uppercase font-mono mb-4">
                 {template.subheading}
               </h3>
             )}
-            {template.body && (
-              <p className="text-xl text-slate-300 mx-auto whitespace-pre-wrap text-left bg-black/40 p-6 rounded-lg border border-[var(--color-apb-surface-border)]">
-                {template.body}
-              </p>
-            )}
-            {template.imageUrl && (
-              <div className="mt-6">
-                <img src={template.imageUrl} alt="Announcement" className="max-w-full h-auto rounded-lg mx-auto" />
-              </div>
-            )}
+            <p className="text-xl text-slate-300 max-w-xl mx-auto whitespace-pre-wrap">
+              {template.body || "Please pay attention to the organizer."}
+            </p>
           </div>
         </div>
       );
@@ -240,16 +236,15 @@ export function ParticipantScreenOverlay({
     return null;
   };
 
-    const overlayModes = ["RULES", "ROUND_INTRO", "EVENT_STATUS", "COUNTDOWN", "CONSTRAINT_REVEAL", "ANNOUNCEMENT", "PAUSED", "EMERGENCY", "ROUND_COMPLETE", "LOCKED", "WAITING", "PARTICIPANT_SYNC"];
-  const isOverlayMode = overlayModes.includes(finalMode);
+  const isOverlayMode = finalMode !== "AUTO" && finalMode !== "NORMAL";
 
   return (
     <div className="relative flex-1 flex flex-col w-full h-full">
       {/* Background layer always holds the children so state is never lost */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-500 ${
+        className={\`flex-1 flex flex-col transition-all duration-500 \${
           isOverlayMode ? "pointer-events-none opacity-10 blur-sm select-none" : ""
-        }`}
+        }\`}
       >
         {children}
       </div>
@@ -273,3 +268,8 @@ export function ParticipantScreenOverlay({
     </div>
   );
 }
+`;
+
+fs.writeFileSync("src/components/apb/ParticipantScreenOverlay.tsx", content);
+console.log("Updated Overlay");
+

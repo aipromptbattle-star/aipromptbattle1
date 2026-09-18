@@ -17,21 +17,37 @@ export type ParticipantScreenMode =
   | "WAITING" 
   | "EMERGENCY";
 
-export interface ParticipantScreenState {
-  globalScreenMode: ParticipantScreenMode;
+export interface PresentationTemplate {
   heading?: string;
   subheading?: string;
   body?: string;
   imageUrl?: string;
-  countdownEndsAt?: number | null;
+  durationSeconds?: number;
+}
+
+export interface ParticipantBoardState {
+  globalScreenMode: ParticipantScreenMode;
+  activeTemplate?: PresentationTemplate;
+  templates?: Partial<Record<ParticipantScreenMode, PresentationTemplate>>;
+  updatedAt: number;
+}
+
+export interface DisplayBoardState {
+  mode: DisplayMode;
+  activeTemplate?: PresentationTemplate;
+  templates?: Partial<Record<DisplayMode, PresentationTemplate>>;
+  updatedAt: number;
+}
+
+export interface GlobalCountdown {
+  active: boolean;
+  startedAt: number;
+  endsAt: number;
+  durationSeconds: number;
   targetRoundId?: string | null;
   targetStage?: number | null;
-  duration?: number | null;
-  broadcastMessage?: {
-    heading: string;
-    message: string;
-    expiresAt: number | null;
-  } | null;
+  heading?: string;
+  subheading?: string;
   updatedAt: number;
 }
 
@@ -60,7 +76,10 @@ export interface Event {
   displayImageUrl?: string;
   displayHeading?: string;
   displaySubheading?: string;
-  displayBody?: string;\n  participantScreenState?: ParticipantScreenState;
+  displayBody?: string;
+  participantScreenState?: ParticipantBoardState;
+  displayBoardState?: DisplayBoardState;
+  globalCountdown?: GlobalCountdown;
   googleSheetsUrl?: string;
   createdAt: number;
   updatedAt: number;
