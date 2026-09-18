@@ -138,7 +138,8 @@ service cloud.firestore {
                     && resource != null && resource.data.teamId == myTeamId()
                     && request.resource.data.teamId  == resource.data.teamId
                     && request.resource.data.eventId == resource.data.eventId
-                    && request.resource.data.roundId == resource.data.roundId;
+                    && request.resource.data.roundId == resource.data.roundId
+                    && request.resource.data.get("overrideScreenMode", null) == resource.data.get("overrideScreenMode", null);
 
       allow delete: if isOrganizer();
     }

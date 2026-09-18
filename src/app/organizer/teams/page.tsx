@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { APBCard } from "@/components/apb/APBCard";
+import { AuthRecoveryPanel } from "@/components/apb/AuthRecoveryPanel";
 import { APBButton } from "@/components/apb/APBButton";
 import { StatusBadge } from "@/components/apb/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { AddTeamDialog } from "@/components/apb/AddTeamDialog";
+import { LiveParticipantViewModal } from "@/components/apb/LiveParticipantViewModal";
+import { useCurrentRound } from "@/lib/firebase/events";
 import { EditTeamDialog } from "@/components/apb/EditTeamDialog";
 import { useTeams, useSessions, toggleTeamStatus, killTeamSessions, addTeam, seedTestTeamRange, clearTestTeams, deleteTeam } from "@/lib/firebase/teams";
 import { useEventState, updateEventSettings } from "@/lib/firebase/events";
@@ -66,6 +69,8 @@ export default function OrganizerTeams() {
   const [rangeClearing, setRangeClearing] = useState(false);
   const [rangeMsg, setRangeMsg] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [livePreviewTeam, setLivePreviewTeam] = useState<string | null>(null);
+  const { currentRound } = useCurrentRound(eventState?.currentRoundId || null);
 
   const handleGenerateTestRange = async () => {
     if (!rangeAccessCode.trim()) {
@@ -446,6 +451,9 @@ export default function OrganizerTeams() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuGroup>
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => setLivePreviewTeam(team.teamId)} className="text-[var(--color-apb-cyan)] font-bold">
+                                Live Screen View
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {
                                 setEditingTeam(team);
                                 setEditDialogOpen(true);

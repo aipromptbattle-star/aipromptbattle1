@@ -1,8 +1,53 @@
 export type EventStatus = "DRAFT" | "LIVE" | "ENDED";
 export type RoundStatus = "DRAFT" | "READY" | "STARTING" | "LIVE" | "PAUSED" | "CLOSED" | "JUDGING" | "RESULTS" | "ENDED";
+
+// --- Advanced Event-Day Types ---
+
+export type ParticipantScreenMode = 
+  | "AUTO"
+  | "RULES"
+  | "ROUND_INTRO"
+  | "COUNTDOWN"
+  | "ANNOUNCEMENT"
+  | "CONSTRAINT_REVEAL"
+  | "PAUSED"
+  | "ROUND_COMPLETE"
+  | "LOCKED"
+  | "NORMAL" 
+  | "WAITING" 
+  | "EMERGENCY";
+
+export interface ParticipantScreenState {
+  globalScreenMode: ParticipantScreenMode;
+  heading?: string;
+  subheading?: string;
+  body?: string;
+  imageUrl?: string;
+  countdownEndsAt?: number | null;
+  targetRoundId?: string | null;
+  targetStage?: number | null;
+  duration?: number | null;
+  broadcastMessage?: {
+    heading: string;
+    message: string;
+    expiresAt: number | null;
+  } | null;
+  updatedAt: number;
+}
+
+export type AuthRecoveryStatus = "AUTHORIZED" | "CONSUMED" | "EXPIRED";
+
+export interface AuthRecoveryState {
+  status: AuthRecoveryStatus;
+  authorizedAt: number;
+  expiresAt: number;
+  consumedAt: number | null;
+  authorizedBy: string;
+}
+
 export type ChallengeType = "TEXT" | "IMAGE" | "COMBINED";
 
-export type DisplayMode = "AUTOMATIC" | "LEADERBOARD" | "LIVE_ROUND" | "EVENT_STATUS" | "WAITING" | "IMAGE" | "TEXT";
+export type DisplayMode = "AUTOMATIC" | "LEADERBOARD" | "LIVE_ROUND" | "EVENT_STATUS" | "WAITING" | "IMAGE" | "TEXT" | "PARTICIPANT_SYNC";
 
 export interface Event {
   eventName: string;
@@ -15,7 +60,7 @@ export interface Event {
   displayImageUrl?: string;
   displayHeading?: string;
   displaySubheading?: string;
-  displayBody?: string;
+  displayBody?: string;\n  participantScreenState?: ParticipantScreenState;
   googleSheetsUrl?: string;
   createdAt: number;
   updatedAt: number;
@@ -31,7 +76,7 @@ export interface Team {
   active: boolean;
   eligibleRounds: number[]; // e.g., [1, 2]
   registrationStatus?: "PENDING" | "CONFIRMED" | "CANCELLED";
-  accessCode?: string; // Team access code / PIN for entry
+  accessCode?: string; // Team access code / PIN for entry\n  recoveryAuth?: AuthRecoveryState;
   source?: "MANUAL" | "GOOGLE_SHEETS" | "TEST" | {
     type: "MANUAL" | "GOOGLE_SHEETS" | "TEST";
     sourceId?: string | null;
@@ -147,6 +192,7 @@ export interface Draft {
   version: number;
   // Quiz Draft:
   quizAnswers?: Record<number, "A" | "B" | "C">;
+  quizVisited?: Record<number, boolean>;
   // Progressive Constraint Stage Drafts:
   currentStage?: number;
   stageDrafts?: Record<number, {
@@ -163,7 +209,7 @@ export interface TeamRoundState {
   eventId: string;
   teamId: string;
   roundId: string;
-  status: TeamRoundStatus;
+  status: TeamRoundStatus;\n  overrideScreenMode?: ParticipantScreenMode | null;
   startedAt?: number;
   submittedAt?: number;
   lastSavedAt?: number;

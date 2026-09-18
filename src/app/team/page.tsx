@@ -9,6 +9,7 @@ import { useTeamRoundState, useSubmission } from "@/lib/firebase/submissions";
 import { APBCard } from "@/components/apb/APBCard";
 import { APBButton } from "@/components/apb/APBButton";
 import { StatusBadge } from "@/components/apb/StatusBadge";
+import { ParticipantScreenOverlay } from "@/components/apb/ParticipantScreenOverlay";
 import { TeamWorkspaceHeader } from "@/components/apb/TeamWorkspaceHeader";
 import { ChallengePanel } from "@/components/apb/ChallengePanel";
 import { PromptEditor } from "@/components/apb/PromptEditor";
@@ -300,16 +301,25 @@ export default function ParticipantDashboard() {
           
           onLeave={handleLogout}
         />
-        <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
+        <ParticipantScreenOverlay
+          globalScreenMode={eventState?.participantScreenState?.globalScreenMode}
+          overrideScreenMode={teamRoundState?.overrideScreenMode}
+          boardState={eventState?.participantScreenState}
+        >
+          <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto flex flex-col relative h-full">
+            
           <QuizWorkspace
             round={currentRound}
             teamId={teamId}
             teamDisplayName={teamData?.displayName}
             eventId={eventId || "currentEvent"}
             initialAnswers={draft?.quizAnswers || {}}
+            initialVisited={draft?.quizVisited || {}}
             existingSubmission={submission}
           />
-        </main>
+        
+          </main>
+        </ParticipantScreenOverlay>
       </div>
     );
   }
@@ -327,7 +337,13 @@ export default function ParticipantDashboard() {
           
           onLeave={handleLogout}
         />
-        <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
+        <ParticipantScreenOverlay
+          globalScreenMode={eventState?.participantScreenState?.globalScreenMode}
+          overrideScreenMode={teamRoundState?.overrideScreenMode}
+          boardState={eventState?.participantScreenState}
+        >
+          <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto flex flex-col relative h-full">
+            
           <ProgressiveConstraintWorkspace
             round={currentRound}
             teamId={teamId}
@@ -335,7 +351,9 @@ export default function ParticipantDashboard() {
             eventId={eventId || "currentEvent"}
             
           />
-        </main>
+        
+          </main>
+        </ParticipantScreenOverlay>
       </div>
     );
   }
@@ -354,7 +372,13 @@ export default function ParticipantDashboard() {
         onLeave={handleLogout}
       />
 
-      <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6 pb-32 sm:pb-28">
+      <ParticipantScreenOverlay
+          globalScreenMode={eventState?.participantScreenState?.globalScreenMode}
+          overrideScreenMode={teamRoundState?.overrideScreenMode}
+          boardState={eventState?.participantScreenState}
+        >
+          <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6 pb-32 sm:pb-28 relative h-full">
+            
         {/* Connection Lost Banner */}
         {!isOnline && (
           <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono text-sm tracking-wide animate-pulse">
@@ -434,7 +458,9 @@ export default function ParticipantDashboard() {
             readOnly={isReadOnly}
           />
         </div>
-      </main>
+      
+          </main>
+        </ParticipantScreenOverlay>
 
       {/* Sticky Bottom Submission Action Bar */}
       {!isRoundClosed && (

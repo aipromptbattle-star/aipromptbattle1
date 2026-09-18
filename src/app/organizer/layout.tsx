@@ -1,10 +1,12 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { GlobalEventHeader } from "@/components/apb/GlobalEventHeader";
 import { cn } from "@/lib/utils";
-import { Terminal, Users, LayoutDashboard, Clock, ExternalLink, LogOut, Star, Trophy, Settings, Flame, Monitor, ShieldAlert } from "lucide-react";
+import { Terminal, Users, LayoutDashboard, Clock, ExternalLink, LogOut, Star, Trophy, Settings, Flame, Monitor, ShieldAlert, Maximize } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
 
@@ -26,12 +28,23 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
     }
   };
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error("Error attempting to enable fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
   const navItems = [
     { name: "Overview", href: "/organizer", icon: LayoutDashboard },
     { name: "Live Control", href: "/organizer/live", icon: Flame },
     { name: "Rounds", href: "/organizer/rounds", icon: Clock },
     { name: "Teams", href: "/organizer/teams", icon: Users },
     { name: "Judging", href: "/organizer/judging", icon: Star },
+    { name: "Participant Board", href: "/organizer/participant-board", icon: Monitor },
     { name: "Display", href: "/organizer/display", icon: Monitor },
     { name: "Sessions", href: "/organizer/sessions", icon: ShieldAlert },
     { name: "System", href: "/organizer/system", icon: Settings },
@@ -39,71 +52,109 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-        {/* Organizer Topbar */}
-        <header className="border-b border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)] px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-50 gap-3">
-          <div className="flex items-center gap-2.5 shrink-0">
+      <div className="min-h-[100dvh] h-[100dvh] w-full bg-background text-foreground flex flex-col font-sans overflow-hidden">
+        {/* GLOBAL ORGANIZER HEADER */}
+        <header className="border-b border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)] px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 z-50">
+          <div className="flex items-center gap-2.5">
             <Terminal className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--color-apb-cyan)]" />
-            <h1 className="font-mono font-bold tracking-widest uppercase text-white text-sm sm:text-base hidden sm:block">
+            <h1 className="font-mono font-bold tracking-widest uppercase text-white text-sm sm:text-base">
               APB Control Room
             </h1>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto py-0.5 max-w-full">
-            <nav className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <Link 
+              href="/display" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              title="Launch Public Host Presentation Display"
+            >
+              <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30 hover:bg-[var(--color-apb-cyan)]/10 transition-colors">
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline-block">Display Screen</span>
+              </div>
+            </Link>
+
+            <button
+              onClick={toggleFullscreen}
+              title="Toggle Fullscreen"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider text-slate-300 border border-slate-600/50 hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <Maximize className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline-block">Fullscreen</span>
+            </button>
+
+            <button
+              onClick={handleSignOut}
+              title="Sign Out"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline-block">Sign Out</span>
+            </button>
+          </div>
+        </header>
+
+        <GlobalEventHeader />
+
+        <div className="flex flex-1 min-h-0 w-full overflow-hidden">
+          {/* ORGANIZER SIDEBAR */}
+          <aside className="w-48 lg:w-64 shrink-0 border-r border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]/30 overflow-y-auto hidden md:block">
+            <nav className="p-4 space-y-1">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
                 return (
-                  <Link key={item.href} href={item.href}>
+                  <Link key={item.href} href={item.href} className="block">
                     <div
                       className={cn(
-                        "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider transition-colors shrink-0",
+                        "flex items-center gap-2.5 px-3 py-2 rounded-md text-xs lg:text-sm font-mono uppercase tracking-wider transition-colors",
                         isActive
                           ? "bg-[var(--color-apb-cyan)]/15 text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30 font-bold"
                           : "text-muted-foreground hover:bg-[var(--color-apb-surface-border)] hover:text-white"
                       )}
                     >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{item.name}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* MAIN CONTENT */}
+          <main className="flex-1 min-w-0 w-full h-full overflow-y-auto p-4 md:p-6 lg:p-8 bg-background">
+            {/* Mobile Nav (horizontal fallback) */}
+            <nav className="flex items-center gap-2 overflow-x-auto pb-4 md:hidden mb-4 border-b border-[var(--color-apb-surface-border)]">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                const Icon = item.icon;
+                return (
+                  <Link key={item.href} href={item.href} className="shrink-0">
+                    <div
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-colors",
+                        isActive
+                          ? "bg-[var(--color-apb-cyan)]/15 text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30 font-bold"
+                          : "text-muted-foreground hover:bg-[var(--color-apb-surface-border)] hover:text-white border border-transparent"
+                      )}
+                    >
                       <Icon className="w-3.5 h-3.5" />
-                      <span className="hidden md:inline-block">{item.name}</span>
+                      <span>{item.name}</span>
                     </div>
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="h-5 w-px bg-[var(--color-apb-surface-border)] shrink-0 hidden sm:block" />
-
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              <Link 
-                href="/display" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                title="Launch Public Host Presentation Display (Opens in new tab)"
-              >
-                <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30 hover:bg-[var(--color-apb-cyan)]/10 transition-colors">
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline-block">Display Screen</span>
-                </div>
-              </Link>
-
-              <button
-                onClick={handleSignOut}
-                title="Sign Out"
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden lg:inline-block">Sign Out</span>
-              </button>
+            <div className="w-full">
+              {children}
             </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
+          </main>
+        </div>
       </div>
     </ProtectedRoute>
   );
 }
+

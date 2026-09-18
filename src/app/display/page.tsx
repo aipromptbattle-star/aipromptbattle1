@@ -7,6 +7,7 @@ import { signInAnonymously } from "firebase/auth";
 import { useAllSubmissions } from "@/lib/firebase/submissions";
 import { useTeams } from "@/lib/firebase/teams";
 import { compareSubmissionsDeterministically } from "@/lib/scoring";
+import { ParticipantScreenOverlay } from "@/components/apb/ParticipantScreenOverlay";
 import { 
   Clock, 
   Maximize2, 
@@ -165,6 +166,7 @@ export default function PublicHostDisplay() {
   const displayOverride = eventState?.displayOverride || "AUTOMATIC";
 
   const showCustom = displayOverride === "IMAGE" || displayOverride === "TEXT";
+  const showParticipantSync = displayOverride === "PARTICIPANT_SYNC";
   const showLeaderboard = displayOverride === "LEADERBOARD" || (displayOverride === "AUTOMATIC" && currentRound?.resultsPublished);
   const showWaiting = displayOverride === "WAITING" || (displayOverride === "AUTOMATIC" && (!currentRound || currentRound.status === "READY" || currentRound.status === "DRAFT"));
   const showLive = displayOverride === "LIVE_ROUND" || (displayOverride === "AUTOMATIC" && currentRound?.status === "LIVE");
