@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { APBCard } from "@/components/apb/APBCard";
+import { ImagePicker } from "@/components/apb/ImagePicker";
 import { APBButton } from "@/components/apb/APBButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -214,13 +215,8 @@ export default function OrganizerDisplayControl() {
               
               {(selectedMode === "IMAGE" || selectedMode === "TEXT") && (
                 <div className="space-y-1.5">
-                  <Label>Image URL (Optional)</Label>
-                  <Input 
-                    value={draftImageUrl} 
-                    onChange={e => setDraftImageUrl(e.target.value)} 
-                    placeholder="https://..."
-                    className="font-mono text-sm"
-                  />
+                  <Label className="text-[var(--color-apb-cyan)] font-bold tracking-widest uppercase mb-1">Image / Media (Optional)</Label>
+                  <ImagePicker value={draftImageUrl} onChange={setDraftImageUrl} />
                 </div>
               )}
 
@@ -262,6 +258,9 @@ export default function OrganizerDisplayControl() {
           
           <div className="relative w-full aspect-video bg-black rounded-lg border border-[var(--color-apb-surface-border)] overflow-hidden shadow-2xl flex items-center justify-center">
             {/* Realtime Iframe preview to guarantee exact renderer matching */}
+            <div className="absolute top-2 right-2 z-10 bg-black/60 px-2 py-1 rounded text-[10px] text-white/50 font-mono pointer-events-none">
+              Previews update after saving
+            </div>
             <iframe
                src="/display?preview=true"
                className="w-[200%] h-[200%] origin-top-left"

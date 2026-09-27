@@ -11,6 +11,7 @@ import { app } from "@/lib/firebase/config";
 import { useEventState, updateEventSettings } from "@/lib/firebase/events";
 import { ParticipantScreenMode, ParticipantBoardState, PresentationTemplate } from "@/lib/firebase/schema";
 import { ParticipantScreenOverlay } from "@/components/apb/ParticipantScreenOverlay";
+import { ImagePicker } from "@/components/apb/ImagePicker";
 import { Terminal, Play, Lock, AlertTriangle, Monitor, Copy, Info, CheckCircle2, LayoutTemplate } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -60,7 +61,7 @@ export default function ParticipantBoardPage() {
   const [draftSubheading, setDraftSubheading] = useState("");
   const [draftBody, setDraftBody] = useState("");
   const [draftImageUrl, setDraftImageUrl] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  
   const [draftDuration, setDraftDuration] = useState("5");
 
   // Load template when selectedMode changes
@@ -81,23 +82,7 @@ export default function ParticipantBoardPage() {
   }, [selectedMode, boardState.templates]);
 
   
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploading(true);
-    try {
-      const storage = getStorage(app);
-      const storageRef = ref(storage, `display/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(snapshot.ref);
-      setDraftImageUrl(url);
-    } catch (err: any) {
-      alert("Upload failed: " + err.message);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
+  
   const saveTemplate = async () => {
     if (selectedMode === "AUTO") return;
     try {
