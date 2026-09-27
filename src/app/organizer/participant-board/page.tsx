@@ -6,6 +6,8 @@ import { APBButton } from "@/components/apb/APBButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { app } from "@/lib/firebase/config";
 import { useEventState, updateEventSettings } from "@/lib/firebase/events";
 import { ParticipantScreenMode, ParticipantBoardState, PresentationTemplate } from "@/lib/firebase/schema";
 import { ParticipantScreenOverlay } from "@/components/apb/ParticipantScreenOverlay";
@@ -20,6 +22,17 @@ function showToast(msg: string, type: "success" | "error" = "success") {
   document.body.appendChild(el);
   setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 3000);
 }
+
+
+function cleanNullFallback(obj: any): any {
+  if (obj === undefined) return null;
+  if (typeof obj !== "object" || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(cleanNullFallback);
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [k, cleanNullFallback(v)])
+  );
+}
+
 const toast = { success: (m: string) => showToast(m, "success"), error: (m: string) => showToast(m, "error") };
 
 const modes: { id: ParticipantScreenMode; label: string }[] = [
@@ -47,6 +60,7 @@ export default function ParticipantBoardPage() {
   const [draftSubheading, setDraftSubheading] = useState("");
   const [draftBody, setDraftBody] = useState("");
   const [draftImageUrl, setDraftImageUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [draftDuration, setDraftDuration] = useState("5");
 
   // Load template when selectedMode changes
@@ -66,6 +80,24 @@ export default function ParticipantBoardPage() {
     setDraftDuration(t?.durationSeconds?.toString() || (selectedMode === "COUNTDOWN" ? "5" : ""));
   }, [selectedMode, boardState.templates]);
 
+  
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const storage = getStorage(app);
+      const storageRef = ref(storage, `display/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      setDraftImageUrl(url);
+    } catch (err: any) {
+      alert("Upload failed: " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const saveTemplate = async () => {
     if (selectedMode === "AUTO") return;
     try {
@@ -80,14 +112,14 @@ export default function ParticipantBoardPage() {
       const newTemplates = { ...(boardState.templates || {}) };
       newTemplates[selectedMode] = newTemplate;
       
-      await updateEventSettings({
+      await updateEventSettings(cleanNullFallback({
         participantScreenState: {
           ...boardState,
           templates: newTemplates,
           updatedAt: Date.now()
         }
-      });
-      toast.success(`${selectedMode} template saved`);
+      }));
+        toast.success(`${selectedMode} template saved`);
     } catch (e: any) {
       toast.error(e.message || "Failed to save template");
     }
@@ -107,15 +139,15 @@ export default function ParticipantBoardPage() {
       const newTemplates = { ...(boardState.templates || {}) };
       newTemplates[selectedMode] = newTemplate;
 
-      await updateEventSettings({
+      await updateEventSettings(cleanNullFallback({
         participantScreenState: {
           globalScreenMode: selectedMode,
           activeTemplate: selectedMode === "AUTO" ? undefined : newTemplate,
           templates: newTemplates,
           updatedAt: Date.now()
         }
-      });
-      toast.success(`Active mode set to ${selectedMode}`);
+      }));
+        toast.success(`Active mode set to ${selectedMode}`);
     } catch (e: any) {
       toast.error(e.message || "Failed to update participants");
     }
@@ -124,7 +156,7 @@ export default function ParticipantBoardPage() {
   const startCountdown = async () => {
     try {
       const d = parseInt(draftDuration) || 5;
-      await updateEventSettings({
+      await updateEventSettings(cleanNullFallback({
         globalCountdown: {
           active: true,
           startedAt: Date.now(),
@@ -134,8 +166,8 @@ export default function ParticipantBoardPage() {
           subheading: draftSubheading,
           updatedAt: Date.now()
         }
-      });
-      toast.success("Countdown started!");
+      }));
+        toast.success("Countdown started!");
     } catch (e: any) {
       toast.error(e.message || "Failed to start countdown");
     }
@@ -143,7 +175,7 @@ export default function ParticipantBoardPage() {
 
   const syncToDisplay = async () => {
     try {
-      await updateEventSettings({
+      await updateEventSettings(cleanNullFallback({
         displayOverride: "PARTICIPANT_SYNC" as any,
         displayHeading: draftHeading || undefined,
         displaySubheading: draftSubheading || undefined,
@@ -159,8 +191,8 @@ export default function ParticipantBoardPage() {
           },
           updatedAt: Date.now()
         }
-      });
-      toast.success("Synced to Public Display");
+      }));
+        toast.success("Synced to Public Display");
     } catch (e: any) {
       toast.error(e.message || "Failed to sync to display");
     }
@@ -168,15 +200,15 @@ export default function ParticipantBoardPage() {
 
   const returnToAuto = async () => {
     try {
-      await updateEventSettings({
+      await updateEventSettings(cleanNullFallback({
         participantScreenState: {
           ...boardState,
           globalScreenMode: "AUTO",
           activeTemplate: undefined,
           updatedAt: Date.now()
         }
-      });
-      toast.success("Returned to AUTO mode");
+      }));
+        toast.success("Returned to AUTO mode");
     } catch (e: any) {
       toast.error(e.message || "Failed to return to auto");
     }

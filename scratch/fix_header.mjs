@@ -1,4 +1,10 @@
 
+import fs from "fs";
+
+let header = fs.readFileSync("src/components/apb/TeamWorkspaceHeader.tsx", "utf8");
+
+// Redesign header
+const newHeader = `
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -119,3 +125,18 @@ export function TeamWorkspaceHeader({
     </header>
   );
 }
+`;
+
+fs.writeFileSync("src/components/apb/TeamWorkspaceHeader.tsx", newHeader);
+
+// Update page.tsx to pass teamMembers
+let page = fs.readFileSync("src/app/team/page.tsx", "utf8");
+
+page = page.replace(
+  `teamDisplayName={teamData?.displayName}`,
+  `teamDisplayName={teamData?.displayName}\n          teamMembers={[teamData?.member1, teamData?.member2].filter(Boolean) as string[]}`
+);
+
+fs.writeFileSync("src/app/team/page.tsx", page);
+console.log("Updated team header");
+

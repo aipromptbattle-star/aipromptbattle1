@@ -257,6 +257,7 @@ export default function ParticipantDashboard() {
           <TeamWorkspaceHeader
             teamId={teamId}
             teamDisplayName={teamData?.displayName}
+          teamMembers={[teamData?.member1, teamData?.member2].filter(Boolean) as string[]}
             round={currentRound}
             
             saveStatus="SAVED"
