@@ -1,29 +1,60 @@
 
 import fs from "fs";
+let f = fs.readFileSync("src/app/organizer/teams/page.tsx", "utf8");
 
-// Fix 1: display/page.tsx
-let disp = fs.readFileSync("src/app/display/page.tsx", "utf8");
-disp = disp.replace(
-  `globalScreenMode={eventState.displayBoardState?.mode}
-                  boardState={eventState.displayBoardState}
-                  overrideScreenMode={eventState.displayBoardState?.mode}`,
-  `globalScreenMode={eventState?.displayBoardState?.mode as any}
-                  boardState={eventState?.displayBoardState as any}
-                  overrideScreenMode={eventState?.displayBoardState?.mode as any}`
-);
-fs.writeFileSync("src/app/display/page.tsx", disp);
+// We need to replace the state declaration
+f = f.replace(`const [bulkAddText, setBulkAddText] = useState("");`, `const [bulkRows, setBulkRows] = useState([{ name: "", teamId: "", accessCode: "" }, { name: "", teamId: "", accessCode: "" }, { name: "", teamId: "", accessCode: "" }]);`);
 
-// Fix 2: teams/page.tsx UI
-let teams = fs.readFileSync("src/app/organizer/teams/page.tsx", "utf8");
-// Let us replace from QUICK IMPORT to Google Sheets Registration
-const startIdx = teams.indexOf(`<div className="text-xs font-mono uppercase text-amber-400 font-bold mb-1">QUICK IMPORT</div>`);
-const endIdx = teams.indexOf(`{/* Section 8: Google Sheets Registration Configuration */}`);
+// We need to replace handleBulkAdd
+const newHandleBulkAdd = `
+  const handleBulkAdd = async () => {
+    const validRows = bulkRows.filter(r => r.name.trim() !== "");
+    if (validRows.length === 0) return;
+    setBulkAdding(true);
+    setBulkResult(null);
+    let added = 0, failed = 0;
+    for (const row of validRows) {
+      const name = row.name.trim();
+      const code = row.accessCode.trim() || undefined;
+      const tId = row.teamId.trim() || (name.toUpperCase().replace(/\\s+/g, "-") + "-" + Math.random().toString(36).slice(2, 6).toUpperCase());
+      try {
+        await addTeam({ displayName: name, accessCode: code, member1: name, member2: "", teamId: tId });
+        added++;
+      } catch { failed++; }
+    }
+    setBulkResult(\`Added: \${added} team\${added !== 1 ? "s" : ""}. Failed: \${failed}.\`);
+    setBulkAdding(false);
+    setBulkRows([{ name: "", teamId: "", accessCode: "" }, { name: "", teamId: "", accessCode: "" }, { name: "", teamId: "", accessCode: "" }]);
+  };
+`;
 
-if (startIdx !== -1 && endIdx !== -1) {
-  // Backtrack to the start of APBCard
-  const cardStart = teams.lastIndexOf(`<APBCard`, startIdx);
-  
-  const newUI = `        <APBCard className="p-6 space-y-4 mb-8">
+const oldHandleBulkAddRegex = /const handleBulkAdd = async \(\) => \{[\s\S]*?setBulkAddText\(""\);\s*\};/;
+f = f.replace(oldHandleBulkAddRegex, newHandleBulkAdd.trim());
+
+// We need to replace the UI
+const oldUI = `        <APBCard className="p-6 space-y-4">
+          <div>
+            <div className="text-xs font-mono uppercase text-amber-400 font-bold mb-1">QUICK IMPORT</div>
+            <h3 className="text-lg font-mono font-bold text-white">Bulk Add Teams</h3>
+            <p className="text-xs text-slate-400 font-mono mt-1">
+              One line per team: TeamName,AccessCode &mdash; or just TeamName to auto-generate a code.
+            </p>
+          </div>
+          <textarea
+            className="w-full h-32 px-3 py-2 rounded-md bg-black border border-white/10 text-xs font-mono text-white resize-none focus:outline-none focus:border-cyan-500"
+            placeholder="Alpha Squad,ALPHA01"
+            value={bulkAddText}
+            onChange={e => setBulkAddText(e.target.value)}
+          />
+          <div className="flex items-center gap-3">
+            <APBButton glow size="sm" onClick={handleBulkAdd} disabled={bulkAdding || !bulkAddText.trim()}>
+              {bulkAdding ? "Adding..." : "ADD ALL TEAMS"}
+            </APBButton>
+            {bulkResult && <span className="text-xs font-mono text-emerald-400">{bulkResult}</span>}
+          </div>
+        </APBCard>`;
+
+const newUI = `        <APBCard className="p-6 space-y-4">
           <div>
             <div className="text-xs font-mono uppercase text-amber-400 font-bold mb-1">QUICK IMPORT</div>
             <h3 className="text-lg font-mono font-bold text-white">Bulk Add Teams</h3>
@@ -92,29 +123,9 @@ if (startIdx !== -1 && endIdx !== -1) {
             </APBButton>
             {bulkResult && <span className="text-xs font-mono text-emerald-400">{bulkResult}</span>}
           </div>
-        </APBCard>
+        </APBCard>`;
 
-        `;
-  
-  teams = teams.slice(0, cardStart) + newUI + teams.slice(endIdx);
-}
-
-// Fix 3: LiveParticipantViewModal
-teams = teams.replace(
-  `<LiveParticipantViewModal
-        teamId={livePreviewTeam}
-        open={!!livePreviewTeam}
-        onOpenChange={(isOpen) => !isOpen && setLivePreviewTeam(null)}
-      />`,
-  `<LiveParticipantViewModal
-        teamId={livePreviewTeam}
-        open={!!livePreviewTeam}
-        onOpenChange={(isOpen) => !isOpen && setLivePreviewTeam(null)}
-        eventId="APB2026"
-        round={null}
-      />`
-);
-
-fs.writeFileSync("src/app/organizer/teams/page.tsx", teams);
-console.log("Fixed TS errors");
+f = f.replace(oldUI, newUI);
+fs.writeFileSync("src/app/organizer/teams/page.tsx", f);
+console.log("Replaced bulk add UI");
 
