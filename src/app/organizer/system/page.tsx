@@ -510,7 +510,7 @@ export default function OrganizerSystem() {
                   className="grid grid-cols-[auto_1fr_auto] gap-3 items-start p-2.5 rounded bg-black/30 border border-[var(--color-apb-surface-border)]"
                 >
                   <span className="text-[10px] font-mono text-muted-foreground mt-0.5 whitespace-nowrap">
-                    {new Date(log.timestamp).toLocaleTimeString()}
+                    {new Date(log.timestamp).toLocaleString(undefined, { dateStyle: "short", timeStyle: "medium" })}
                   </span>
                   <div>
                     <span className="text-xs font-mono text-[var(--color-apb-cyan)] font-bold">

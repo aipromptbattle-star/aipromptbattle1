@@ -238,10 +238,12 @@ export default function PublicHostDisplay() {
         {displayOverride === "IMAGE" && (
           <div className="w-full h-full flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-300">
             {eventState?.displayImageUrl ? (
-              <img 
-                src={eventState.displayImageUrl} 
-                alt="Display Custom" 
-                className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-white/10 shadow-2xl" 
+              <img
+                src={eventState.displayImageUrl}
+                alt="Display"
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+                className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-white/10 shadow-2xl"
               />
             ) : (
               <div className="text-muted-foreground font-mono uppercase tracking-widest">NO IMAGE PROVIDED</div>

@@ -37,6 +37,9 @@ export default function OrganizerTeams() {
   const [sheetUrl, setSheetUrl] = useState("");
   const [savingSheet, setSavingSheet] = useState(false);
   const [sheetSavedMsg, setSheetSavedMsg] = useState(false);
+  const [bulkAddText, setBulkAddText] = useState("");
+  const [bulkAdding, setBulkAdding] = useState(false);
+  const [bulkResult, setBulkResult] = useState<string | null>(null);
 
   // Sync sheetUrl from eventState
   useEffect(() => {
@@ -116,6 +119,27 @@ export default function OrganizerTeams() {
     } finally {
       setRangeClearing(false);
     }
+  };
+
+  const handleBulkAdd = async () => {
+    if (!bulkAddText.trim()) return;
+    setBulkAdding(true);
+    setBulkResult(null);
+    let added = 0, failed = 0;
+    const lines = bulkAddText.trim().split("\n").map((l: string) => l.trim()).filter(Boolean);
+    for (const line of lines) {
+      const parts = line.split(",").map((s: string) => s.trim());
+      const name = parts[0];
+      const code = parts[1] || undefined;
+      if (!name) { failed++; continue; }
+      try {
+        await addTeam({ displayName: name, accessCode: code, member1: name, member2: "", teamId: name.toUpperCase().replace(/\s+/g, "-") + "-" + Math.random().toString(36).slice(2, 6).toUpperCase() });
+        added++;
+      } catch { failed++; }
+    }
+    setBulkResult(`Added: ${added} team${added !== 1 ? "s" : ""}. Failed: ${failed}.`);
+    setBulkAdding(false);
+    setBulkAddText("");
   };
 
   const filteredTeams = teams.filter((team) => 
@@ -300,6 +324,29 @@ export default function OrganizerTeams() {
             </APBButton>
           </div>
         )}
+      </APBCard>
+
+      {/* Bulk Add Teams */}
+      <APBCard className="p-6 space-y-4">
+        <div>
+          <div className="text-xs font-mono uppercase text-amber-400 font-bold mb-1">QUICK IMPORT</div>
+          <h3 className="text-lg font-mono font-bold text-white">Bulk Add Teams</h3>
+          <p className="text-xs text-slate-400 font-mono mt-1">
+            One line per team: TeamName,AccessCode &mdash; or just TeamName to auto-generate a code.
+          </p>
+        </div>
+        <textarea
+          className="w-full h-32 px-3 py-2 rounded-md bg-black border border-white/10 text-xs font-mono text-white resize-none focus:outline-none focus:border-cyan-500"
+          placeholder="Alpha Squad,ALPHA01"
+          value={bulkAddText}
+          onChange={e => setBulkAddText(e.target.value)}
+        />
+        <div className="flex items-center gap-3">
+          <APBButton glow size="sm" onClick={handleBulkAdd} disabled={bulkAdding || !bulkAddText.trim()}>
+            {bulkAdding ? "Adding..." : "ADD ALL TEAMS"}
+          </APBButton>
+          {bulkResult && <span className="text-xs font-mono text-emerald-400">{bulkResult}</span>}
+        </div>
       </APBCard>
 
       {/* Section 8: Google Sheets Registration Configuration */}

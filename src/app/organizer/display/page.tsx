@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { useEventState, updateEventSettings } from "@/lib/firebase/events";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { app } from "@/lib/firebase/config";
 import { DisplayMode, DisplayBoardState, PresentationTemplate } from "@/lib/firebase/schema";
 import { Monitor, ExternalLink, Play, Lock, AlertTriangle, Copy, Info, CheckCircle2, LayoutTemplate } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

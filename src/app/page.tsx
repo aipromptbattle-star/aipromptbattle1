@@ -58,8 +58,9 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        <div className="pt-8 text-xs font-mono text-muted-foreground uppercase tracking-widest">
-          SJBIT • 30 OCTOBER 2026 • BENGALURU
+        <div className="pt-8 text-xs font-mono text-emerald-400/70 uppercase tracking-widest flex items-center justify-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          AI PROMPT BATTLE
         </div>
       </div>
     </div>

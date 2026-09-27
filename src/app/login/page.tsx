@@ -193,18 +193,10 @@ function LoginContent() {
         {/* Thin Divider Line */}
         <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-[var(--color-apb-surface-border)] to-transparent" />
 
-        {/* Event Location & System Ready Indicator */}
-        <div className="space-y-1.5 font-mono text-xs text-muted-foreground">
-          <div className="tracking-widest uppercase font-bold text-slate-300">
-            30 OCTOBER 2026
-          </div>
-          <div className="tracking-wider uppercase text-[11px] text-slate-400">
-            SJBIT • BENGALURU
-          </div>
-          <div className="pt-2 flex items-center justify-center gap-2 text-emerald-400 text-[11px] tracking-widest uppercase font-semibold">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>EVENT SYSTEM READY</span>
-          </div>
+        {/* System Ready Indicator */}
+        <div className="pt-1 flex items-center justify-center gap-2 text-emerald-400 text-[11px] font-mono tracking-widest uppercase font-semibold">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>EVENT SYSTEM READY</span>
         </div>
       </div>
 

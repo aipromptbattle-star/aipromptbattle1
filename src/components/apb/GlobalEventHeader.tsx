@@ -57,7 +57,7 @@ export function GlobalEventHeader() {
   return (
     <div className="bg-[var(--color-apb-surface)] border-b border-[var(--color-apb-surface-border)] px-4 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2 font-mono text-xs uppercase tracking-widest">
       <div className="flex flex-wrap items-center gap-4">
-        <span className="font-bold text-white tracking-widest hidden lg:block">VIGYANTRA × AI</span>
+        <span className="font-bold text-white tracking-widest hidden lg:block">AI PROMPT BATTLE</span>
         
         <StatusBadge 
           status={eventState.status} 
