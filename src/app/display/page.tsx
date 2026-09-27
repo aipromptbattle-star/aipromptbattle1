@@ -278,8 +278,24 @@ export default function PublicHostDisplay() {
           </div>
         )}
 
-        {/* 1. OVERRIDE: SHOW LEADERBOARD */}
-        {showLeaderboard && !showCustom && (
+        
+          {/* 1.5 PARTICIPANT SYNC OVERRIDE */}
+          {showParticipantSync && (
+            <div className="w-full flex items-center justify-center animate-in fade-in zoom-in-95 duration-300">
+              <div className="relative w-[100vw] h-[100vh] overflow-hidden bg-black flex items-center justify-center">
+                <ParticipantScreenOverlay
+                  globalScreenMode={eventState?.displayBoardState?.mode as any}
+                  boardState={eventState?.displayBoardState as any}
+                  overrideScreenMode={eventState?.displayBoardState?.mode as any}
+                >
+                  <div className="w-full h-full flex flex-col items-center justify-center opacity-30 text-white font-mono text-xl">
+                  </div>
+                </ParticipantScreenOverlay>
+              </div>
+            </div>
+          )}
+\n          {/* 1. OVERRIDE: SHOW LEADERBOARD */}
+        {showLeaderboard && !showCustom && !showParticipantSync && (
           <div className="w-full max-w-4xl flex flex-col items-center gap-6 animate-in fade-in zoom-in-95 duration-300">
             <div className="space-y-1">
               <div className="px-5 py-1.5 rounded-full border border-yellow-500/40 bg-yellow-500/10 text-yellow-300 font-mono text-xs tracking-widest uppercase font-bold inline-flex items-center gap-2">
@@ -337,7 +353,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 2. AUTHORITATIVE COUNTDOWN */}
-        {!showLeaderboard && !showCustom && showStarting && (
+        {!showLeaderboard && !showCustom && !showParticipantSync && showStarting && (
           <div className="flex flex-col items-center justify-center gap-4 animate-in zoom-in-95 duration-200">
             <div className="text-xl sm:text-2xl font-mono uppercase tracking-widest text-white/80 font-bold">
               ROUND 0{currentRound?.roundNumber}
@@ -359,7 +375,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 3. WAITING SCREEN */}
-        {!showLeaderboard && !showCustom && showWaiting && (
+        {!showLeaderboard && !showCustom && !showParticipantSync && showWaiting && (
           <div className="flex flex-col items-center justify-center gap-6 max-w-3xl">
             <div className="px-6 py-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-[var(--color-apb-cyan)] font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
               <Clock className="w-4 h-4 animate-pulse" />
@@ -382,7 +398,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 4. PAUSED */}
-        {!showLeaderboard && !showCustom && showPaused && (
+        {!showLeaderboard && !showCustom && !showParticipantSync && showPaused && (
           <div className="flex flex-col items-center justify-center gap-5 max-w-4xl animate-pulse">
             <div className="px-6 py-2 rounded-full border border-amber-500/50 bg-amber-500/20 text-amber-300 font-mono text-base tracking-widest uppercase font-bold flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
@@ -408,7 +424,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 5. ROUND COMPLETE */}
-        {!showLeaderboard && !showCustom && showComplete && (
+        {!showLeaderboard && !showCustom && !showParticipantSync && showComplete && (
           <div className="flex flex-col items-center justify-center gap-5 max-w-3xl">
             <div className="px-6 py-2 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono text-sm tracking-widest uppercase font-bold flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-purple-400" />
@@ -426,7 +442,7 @@ export default function PublicHostDisplay() {
         )}
 
         {/* 6. LIVE ROUND (TIMER IS DOMINANT) */}
-        {!showLeaderboard && !showCustom && showLive && (
+        {!showLeaderboard && !showCustom && !showParticipantSync && showLive && (
           <div className="w-full flex flex-col items-center justify-center gap-6 max-w-5xl">
             
             {/* DOMINANT HERO TIMER */}
