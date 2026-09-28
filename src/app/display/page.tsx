@@ -21,28 +21,6 @@ import {
 
 
 
-// Synthesize a heavy gong/chord for GO
-function playGong() {
-  try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    
-    [200, 250, 300].forEach((freq) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
-      osc.start();
-      osc.stop(ctx.currentTime + 2);
-    });
-  } catch (e) {}
-}
-
 
 // Singleton Audio Context to prevent exceeding hardware limits
 let audioCtx: any = null;

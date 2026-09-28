@@ -63,7 +63,7 @@ export function TeamStatusBoard() {
       statusLabel = "WORKING";
     }
 
-    if (isOnline && (Date.now() - lastActivityAt > 120000)) {
+    if (isOnline && (new Date().getTime() - lastActivityAt > 120000)) {
         // Just idle
     }
     

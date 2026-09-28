@@ -540,7 +540,7 @@ export async function rebalancePendingTeams({
 // 3. JUDGE SCORES
 // ─────────────────────────────────────────────────────────────
 
-export function useJudgeScores(roundId?: string | null, submissionId?: string | null) {
+export function useJudgeScores(roundId?: string | null, submissionId?: string | null, judgeIdFilter?: string | null) {
   const [scores, setScores] = useState<JudgeScore[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -552,6 +552,9 @@ export function useJudgeScores(roundId?: string | null, submissionId?: string | 
     }
     if (submissionId) {
       q = query(q, where("submissionId", "==", submissionId));
+    }
+    if (judgeIdFilter) {
+      q = query(q, where("judgeId", "==", judgeIdFilter));
     }
 
     const unsub = onSnapshot(
@@ -567,7 +570,7 @@ export function useJudgeScores(roundId?: string | null, submissionId?: string | 
       }
     );
     return () => unsub();
-  }, [roundId, submissionId]);
+  }, [roundId, submissionId, judgeIdFilter]);
 
   return { scores, loading };
 }

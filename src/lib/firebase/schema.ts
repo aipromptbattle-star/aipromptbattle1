@@ -68,6 +68,7 @@ export type ChallengeType = "TEXT" | "IMAGE" | "COMBINED";
 export type DisplayMode = "AUTOMATIC" | "LEADERBOARD" | "LIVE_ROUND" | "EVENT_STATUS" | "WAITING" | "IMAGE" | "TEXT" | "PARTICIPANT_SYNC";
 
 export interface Event {
+  displayLeaderboardTopN?: number | null;
   eventName: string;
   status: EventStatus;
   currentRoundId: string | null;
@@ -264,6 +265,10 @@ export interface StageSubmissionRecord {
 }
 
 export interface Submission {
+  updatedAt?: number;
+  content?: { text: string };
+  autoCaptured?: boolean;
+  scoreDocRef?: string;
   id: string; // `${eventId}_${teamId}_${roundId}`
   eventId: string;
   teamId: string;

@@ -178,7 +178,7 @@ export function TeamSessionProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const leaveTeam = () => {
+  function leaveTeam() {
     if (anonUser) {
       deleteDoc(doc(db, "sessions", anonUser.uid)).catch(console.error);
     }

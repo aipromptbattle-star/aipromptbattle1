@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  eslint: { ignoreDuringBuilds: true },
+  // eslint ignore removed for valid NextConfig
   typescript: { ignoreBuildErrors: true }
 };
 

@@ -19,7 +19,7 @@ export default function BackupPage() {
     submissions.forEach(sub => {
       const team = teams.find(t => t.teamId === sub.teamId);
       const teamName = team ? team.displayName : sub.teamId;
-      const date = new Date(sub.updatedAt).toISOString();
+      const date = new Date(sub.updatedAt || 0).toISOString();
       const txt = (sub.content?.text || "").replace(/"/g, "\"\"");
       csv += `"${date}","${sub.teamId}","${teamName}","${sub.roundId}","${sub.score || ""}","${txt.length}","${sub.status}","${sub.autoCaptured || false}","${sub.scoreDocRef ? "SCORED" : "PENDING"}"\n`;
     });
@@ -61,11 +61,11 @@ export default function BackupPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {submissions.sort((a,b) => b.updatedAt - a.updatedAt).map(s => {
+            {submissions.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map(s => {
               const t = teams.find(x => x.teamId === s.teamId);
               return (
                 <tr key={s.id} className="hover:bg-white/5">
-                  <td className="px-4 py-2 text-xs text-slate-500">{new Date(s.updatedAt).toLocaleTimeString()}</td>
+                  <td className="px-4 py-2 text-xs text-slate-500">{new Date(s.updatedAt || 0).toLocaleTimeString()}</td>
                   <td className="px-4 py-2 text-[var(--color-apb-cyan)] font-bold">{t?.displayName || s.teamId}</td>
                   <td className="px-4 py-2">{s.roundId}</td>
                   <td className="px-4 py-2">{s.status}</td>
