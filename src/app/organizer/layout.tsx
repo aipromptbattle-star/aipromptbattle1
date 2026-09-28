@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { GlobalEventHeader } from "@/components/apb/GlobalEventHeader";
+import { CoordWalkiePanel } from "@/components/organizer/CoordWalkiePanel";
 import { cn } from "@/lib/utils";
 import {
   Terminal, Users, LayoutDashboard, Clock, ExternalLink, LogOut,
@@ -197,6 +198,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
             {children}
           </div>
         </main>
+        <CoordWalkiePanel />
       </div>
     </ProtectedRoute>
   );
