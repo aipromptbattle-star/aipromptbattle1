@@ -128,7 +128,7 @@ export function ActiveSessionsModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl bg-[var(--color-apb-surface)] border-[var(--color-apb-surface-border)] text-white max-h-[90vh] overflow-y-auto p-6">
+        <DialogContent className="w-[100vw] max-w-[100vw] h-[100vh] max-h-[100vh] m-0 rounded-none border-none bg-[#0a0f18] text-white overflow-y-auto p-4 md:p-10 scrollbar-none">
           <DialogHeader className="border-b border-[var(--color-apb-surface-border)] pb-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-6">
               <div className="flex items-center gap-2.5">
