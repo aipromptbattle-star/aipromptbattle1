@@ -100,3 +100,19 @@
   }
 }
 
+
+/* --- MOBILE & ACCIDENTAL TOUCH PREVENTION --- */
+body {
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  /* Prevent touch highlight color on mobile */
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: auto;
+  -ms-user-select: auto;
+  user-select: auto;
+}
