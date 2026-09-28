@@ -60,6 +60,17 @@ export function ChallengePanel({ round }: ChallengePanelProps) {
       )}
 
       {/* Reference Material / Seed Prompt if available */}
+      {round.imageUrl && (
+        <div className="space-y-1.5 pt-2 border-t border-[var(--color-apb-surface-border)]/50">
+          <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <ImageIcon className="w-3.5 h-3.5" /> Reference Image
+          </span>
+          <div className="rounded-md overflow-hidden border border-[var(--color-apb-surface-border)]">
+            <img src={round.imageUrl} alt="Challenge Reference" className="w-full h-auto" />
+          </div>
+        </div>
+      )}
+      
       {round.referenceMaterial && (
         <div className="space-y-1.5 pt-2 border-t border-[var(--color-apb-surface-border)]/50">
           <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">

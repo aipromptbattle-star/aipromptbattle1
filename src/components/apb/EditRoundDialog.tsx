@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { APBButton } from "./APBButton";
+import { ImagePicker } from "./ImagePicker";
 import { Edit } from "lucide-react";
 import { updateRound } from "@/lib/firebase/rounds";
 import { Round } from "@/lib/firebase/schema";
@@ -43,6 +44,7 @@ export function EditRoundDialog({ round, open, onOpenChange }: EditRoundDialogPr
         challengeType: round.challengeType || "COMBINED",
         challengeInstructions: round.challengeInstructions || "",
         referenceMaterial: round.referenceMaterial || "",
+        imageUrl: round.imageUrl || "",
         constraintsStr: round.constraints?.join("\n") || "",
       });
       setError("");

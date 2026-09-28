@@ -158,7 +158,43 @@ export default function ParticipantBoardPage() {
     }
   };
 
-  const syncToDisplay = async () => {
+  
+    const syncToJudges = async () => {
+      try {
+        await updateEventSettings(cleanNullFallback({
+          judgeScreenState: {
+            globalScreenMode: "PARTICIPANT_SYNC",
+            activeTemplate: {
+              heading: draftHeading,
+              subheading: draftSubheading,
+              body: draftBody,
+              imageUrl: draftImageUrl,
+            },
+            updatedAt: Date.now()
+          }
+        }));
+        toast.success("Synced to Judges");
+      } catch (e: any) {
+        toast.error(e.message || "Failed to sync to judges");
+      }
+    };
+    
+    const returnJudgesToAuto = async () => {
+      try {
+        await updateEventSettings(cleanNullFallback({
+          judgeScreenState: {
+            globalScreenMode: "AUTO",
+            activeTemplate: null,
+            updatedAt: Date.now()
+          }
+        }));
+        toast.success("Judges returned to Auto");
+      } catch (e: any) {
+        toast.error(e.message || "Failed to return judges to auto");
+      }
+    };
+
+    const syncToDisplay = async () => {
     try {
       await updateEventSettings(cleanNullFallback({
         displayOverride: "PARTICIPANT_SYNC" as any,

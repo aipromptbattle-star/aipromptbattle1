@@ -79,6 +79,7 @@ export interface Event {
   displayBody?: string;
   participantScreenState?: ParticipantBoardState;
   displayBoardState?: DisplayBoardState;
+  judgeScreenState?: ParticipantBoardState;
   globalCountdown?: GlobalCountdown;
   googleSheetsUrl?: string;
   createdAt: number;
@@ -86,7 +87,8 @@ export interface Event {
 }
 
 export interface Team {
-  teamId: string; // The normalized ID, e.g., "APB-014"
+  teamId: string;
+  overrideScreenMode?: ParticipantScreenMode | null; // The normalized ID, e.g., "APB-014"
   displayName: string;
   member1: string;
   member1Email?: string;
@@ -171,6 +173,7 @@ export interface Round {
   challengeDescription?: string;
   challengeInstructions?: string;
   referenceMaterial?: string;
+    imageUrl?: string;
   constraints?: string[];
   assets?: string[];
   resultsPublished?: boolean;

@@ -7,6 +7,7 @@ import { useJudgeAssignments, useJudgeScores, useJudgePresence } from "@/lib/fir
 import { useEventState, useCurrentRound } from "@/lib/firebase/events";
 import { useTeams } from "@/lib/firebase/teams";
 import { APBCard } from "@/components/apb/APBCard";
+import { ParticipantScreenOverlay } from "@/components/apb/ParticipantScreenOverlay";
 import { APBButton } from "@/components/apb/APBButton";
 import { StatusBadge } from "@/components/apb/StatusBadge";
 import { Input } from "@/components/ui/input";
@@ -75,7 +76,11 @@ export default function JudgeDashboard() {
   });
 
   return (
-    <div className="space-y-8">
+    <ParticipantScreenOverlay
+      globalScreenMode={eventState?.judgeScreenState?.globalScreenMode}
+      boardState={eventState?.judgeScreenState}
+    >
+      <div className="space-y-8">
       {/* Welcome Banner */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -248,6 +253,7 @@ export default function JudgeDashboard() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </ParticipantScreenOverlay>
   );
 }

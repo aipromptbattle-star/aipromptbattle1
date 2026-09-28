@@ -1,120 +1,46 @@
 
 import fs from "fs";
 
-// Fix 1: display/page.tsx
-let disp = fs.readFileSync("src/app/display/page.tsx", "utf8");
-disp = disp.replace(
-  `globalScreenMode={eventState.displayBoardState?.mode}
-                  boardState={eventState.displayBoardState}
-                  overrideScreenMode={eventState.displayBoardState?.mode}`,
-  `globalScreenMode={eventState?.displayBoardState?.mode as any}
-                  boardState={eventState?.displayBoardState as any}
-                  overrideScreenMode={eventState?.displayBoardState?.mode as any}`
-);
-fs.writeFileSync("src/app/display/page.tsx", disp);
-
-// Fix 2: teams/page.tsx UI
-let teams = fs.readFileSync("src/app/organizer/teams/page.tsx", "utf8");
-// Let us replace from QUICK IMPORT to Google Sheets Registration
-const startIdx = teams.indexOf(`<div className="text-xs font-mono uppercase text-amber-400 font-bold mb-1">QUICK IMPORT</div>`);
-const endIdx = teams.indexOf(`{/* Section 8: Google Sheets Registration Configuration */}`);
-
-if (startIdx !== -1 && endIdx !== -1) {
-  // Backtrack to the start of APBCard
-  const cardStart = teams.lastIndexOf(`<APBCard`, startIdx);
-  
-  const newUI = `        <APBCard className="p-6 space-y-4 mb-8">
-          <div>
-            <div className="text-xs font-mono uppercase text-amber-400 font-bold mb-1">QUICK IMPORT</div>
-            <h3 className="text-lg font-mono font-bold text-white">Bulk Add Teams</h3>
-            <p className="text-xs text-slate-400 font-mono mt-1">
-              Fill in the columns below. Leaving Team ID or Access Code blank will auto-generate them.
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div className="text-xs font-mono text-muted-foreground uppercase pl-1">Team Name (Required)</div>
-              <div className="text-xs font-mono text-muted-foreground uppercase pl-1 hidden md:block">Team ID (Optional)</div>
-              <div className="text-xs font-mono text-muted-foreground uppercase pl-1 hidden md:block">Access Code (Optional)</div>
-            </div>
-            {bulkRows.map((row, i) => (
-              <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
-                <Input
-                  className="font-mono text-xs"
-                  placeholder="e.g. Alpha Squad"
-                  value={row.name}
-                  onChange={(e) => {
-                    const r = [...bulkRows];
-                    r[i].name = e.target.value;
-                    setBulkRows(r);
-                  }}
-                />
-                <Input
-                  className="font-mono text-xs"
-                  placeholder="e.g. ALPHA-01"
-                  value={row.teamId}
-                  onChange={(e) => {
-                    const r = [...bulkRows];
-                    r[i].teamId = e.target.value;
-                    setBulkRows(r);
-                  }}
-                />
-                <Input
-                  className="font-mono text-xs"
-                  placeholder="e.g. SECRET123"
-                  value={row.accessCode}
-                  onChange={(e) => {
-                    const r = [...bulkRows];
-                    r[i].accessCode = e.target.value;
-                    setBulkRows(r);
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3 pt-2 border-t border-white/5">
-            <APBButton 
-              size="sm" 
-              variant="outline" 
-              onClick={() => setBulkRows([...bulkRows, { name: "", teamId: "", accessCode: "" }])}
-            >
-              + Add Row
-            </APBButton>
-            <APBButton 
-              glow 
-              size="sm" 
-              onClick={handleBulkAdd} 
-              disabled={bulkAdding || bulkRows.filter(r => r.name.trim() !== "").length === 0}
-            >
-              {bulkAdding ? "Adding..." : "ADD TEAMS"}
-            </APBButton>
-            {bulkResult && <span className="text-xs font-mono text-emerald-400">{bulkResult}</span>}
-          </div>
-        </APBCard>
-
-        `;
-  
-  teams = teams.slice(0, cardStart) + newUI + teams.slice(endIdx);
+// Fix Team interface
+let f = fs.readFileSync("src/lib/firebase/schema.ts", "utf8");
+if (!f.includes("overrideScreenMode?: ParticipantScreenMode | null;")) {
+  f = f.replace(`export interface Team {
+  teamId: string;`, `export interface Team {
+  teamId: string;
+  overrideScreenMode?: ParticipantScreenMode | null;`);
+  fs.writeFileSync("src/lib/firebase/schema.ts", f);
 }
 
-// Fix 3: LiveParticipantViewModal
-teams = teams.replace(
-  `<LiveParticipantViewModal
-        teamId={livePreviewTeam}
-        open={!!livePreviewTeam}
-        onOpenChange={(isOpen) => !isOpen && setLivePreviewTeam(null)}
-      />`,
-  `<LiveParticipantViewModal
-        teamId={livePreviewTeam}
-        open={!!livePreviewTeam}
-        onOpenChange={(isOpen) => !isOpen && setLivePreviewTeam(null)}
-        eventId="APB2026"
-        round={null}
-      />`
-);
-
-fs.writeFileSync("src/app/organizer/teams/page.tsx", teams);
+// Fix EditRoundDialog formData
+let f2 = fs.readFileSync("src/components/apb/EditRoundDialog.tsx", "utf8");
+f2 = f2.replace(`referenceMaterial: round.referenceMaterial || "",
+        imageUrl: round.imageUrl || "",
+      });`, `referenceMaterial: round.referenceMaterial || "",
+        imageUrl: round.imageUrl || "",
+      });`);
+      
+// Wait, the formData type is inferred from initial state!
+const stateMatch = f2.indexOf(`const [formData, setFormData] = useState({`);
+if (stateMatch !== -1) {
+  f2 = f2.replace(`const [formData, setFormData] = useState({
+    title: round.title,
+    description: round.description || "",
+    durationSeconds: round.durationSeconds,
+    challengeType: round.challengeType || "TEXT",
+    challengeInstructions: round.challengeInstructions || "",
+    referenceMaterial: round.referenceMaterial || "",
+    constraintsStr: round.constraints ? round.constraints.join("\\n") : ""
+  });`, `const [formData, setFormData] = useState({
+    title: round.title,
+    description: round.description || "",
+    durationSeconds: round.durationSeconds,
+    challengeType: round.challengeType || "TEXT",
+    challengeInstructions: round.challengeInstructions || "",
+    referenceMaterial: round.referenceMaterial || "",
+    imageUrl: round.imageUrl || "",
+    constraintsStr: round.constraints ? round.constraints.join("\\n") : ""
+  });`);
+}
+fs.writeFileSync("src/components/apb/EditRoundDialog.tsx", f2);
 console.log("Fixed TS errors");
 

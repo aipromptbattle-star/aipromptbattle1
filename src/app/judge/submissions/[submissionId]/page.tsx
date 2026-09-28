@@ -10,6 +10,7 @@ import { Submission, Round, JudgeScore, ScoringCriterion, DEFAULT_SCORING_CRITER
 import { saveJudgeScore, useJudgePresence } from "@/lib/firebase/judging";
 import { calculateDeterministicScore } from "@/lib/scoring";
 import { APBCard } from "@/components/apb/APBCard";
+import { ParticipantScreenOverlay } from "@/components/apb/ParticipantScreenOverlay";
 import { APBButton } from "@/components/apb/APBButton";
 import { ConfirmationDialog } from "@/components/apb/ConfirmationDialog";
 import { Label } from "@/components/ui/label";

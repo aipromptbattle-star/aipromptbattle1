@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { APBCard } from "@/components/apb/APBCard";
 import { AuthRecoveryPanel } from "@/components/apb/AuthRecoveryPanel";
 import { APBButton } from "@/components/apb/APBButton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/apb/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { AddTeamDialog } from "@/components/apb/AddTeamDialog";
@@ -37,7 +38,9 @@ export default function OrganizerTeams() {
   const [sheetUrl, setSheetUrl] = useState("");
   const [savingSheet, setSavingSheet] = useState(false);
   const [sheetSavedMsg, setSheetSavedMsg] = useState(false);
-  const [bulkRows, setBulkRows] = useState([{ name: "", teamId: "", accessCode: "" }, { name: "", teamId: "", accessCode: "" }, { name: "", teamId: "", accessCode: "" }]);
+  const [bulkNames, setBulkNames] = useState("");
+  const [bulkIds, setBulkIds] = useState("");
+  const [bulkCodes, setBulkCodes] = useState("");
   const [bulkAdding, setBulkAdding] = useState(false);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
 
@@ -122,23 +125,30 @@ export default function OrganizerTeams() {
   };
 
   const handleBulkAdd = async () => {
-    const validRows = bulkRows.filter(r => r.name.trim() !== "");
-    if (validRows.length === 0) return;
+    const names = bulkNames.split("\n").map(s => s.trim()).filter(Boolean);
+    const ids = bulkIds.split("\n").map(s => s.trim());
+    const codes = bulkCodes.split("\n").map(s => s.trim());
+    
+    if (names.length === 0) return;
     setBulkAdding(true);
     setBulkResult(null);
     let added = 0, failed = 0;
-    for (const row of validRows) {
-      const name = row.name.trim();
-      const code = row.accessCode.trim() || undefined;
-      const tId = row.teamId.trim() || (name.toUpperCase().replace(/\s+/g, "-") + "-" + Math.random().toString(36).slice(2, 6).toUpperCase());
+    
+    for (let i = 0; i < names.length; i++) {
+      const name = names[i];
+      const code = codes[i] || undefined;
+      const tId = ids[i] || (name.toUpperCase().replace(/\s+/g, "-") + "-" + Math.random().toString(36).slice(2, 6).toUpperCase());
       try {
         await addTeam({ displayName: name, accessCode: code, member1: name, member2: "", teamId: tId });
         added++;
       } catch { failed++; }
     }
+    
     setBulkResult(`Added: ${added} team${added !== 1 ? "s" : ""}. Failed: ${failed}.`);
     setBulkAdding(false);
-    setBulkRows([{ name: "", teamId: "", accessCode: "" }, { name: "", teamId: "", accessCode: "" }, { name: "", teamId: "", accessCode: "" }]);
+    setBulkNames("");
+    setBulkIds("");
+    setBulkCodes("");
   };
 
   const filteredTeams = teams.filter((team) => 
@@ -331,65 +341,46 @@ export default function OrganizerTeams() {
             <div className="text-xs font-mono uppercase text-amber-400 font-bold mb-1">QUICK IMPORT</div>
             <h3 className="text-lg font-mono font-bold text-white">Bulk Add Teams</h3>
             <p className="text-xs text-slate-400 font-mono mt-1">
-              Fill in the columns below. Leaving Team ID or Access Code blank will auto-generate them.
+              Paste names, IDs, and codes (one per line). Names are required. IDs and Codes are optional (they will be auto-generated if left blank or if lines run out).
             </p>
           </div>
           
-          <div className="space-y-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div className="text-xs font-mono text-muted-foreground uppercase pl-1">Team Name (Required)</div>
-              <div className="text-xs font-mono text-muted-foreground uppercase pl-1 hidden md:block">Team ID (Optional)</div>
-              <div className="text-xs font-mono text-muted-foreground uppercase pl-1 hidden md:block">Access Code (Optional)</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <div className="text-xs font-mono text-muted-foreground uppercase pl-1">Team Names (Required)</div>
+              <textarea
+                className="w-full h-48 px-3 py-2 rounded-md bg-black border border-white/10 text-xs font-mono text-white resize-none focus:outline-none focus:border-cyan-500"
+                placeholder="Team Alpha\nTeam Beta\nTeam Gamma"
+                value={bulkNames}
+                onChange={e => setBulkNames(e.target.value)}
+              />
             </div>
-            {bulkRows.map((row, i) => (
-              <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
-                <Input
-                  className="font-mono text-xs"
-                  placeholder="e.g. Alpha Squad"
-                  value={row.name}
-                  onChange={(e) => {
-                    const r = [...bulkRows];
-                    r[i].name = e.target.value;
-                    setBulkRows(r);
-                  }}
-                />
-                <Input
-                  className="font-mono text-xs"
-                  placeholder="e.g. ALPHA-01"
-                  value={row.teamId}
-                  onChange={(e) => {
-                    const r = [...bulkRows];
-                    r[i].teamId = e.target.value;
-                    setBulkRows(r);
-                  }}
-                />
-                <Input
-                  className="font-mono text-xs"
-                  placeholder="e.g. SECRET123"
-                  value={row.accessCode}
-                  onChange={(e) => {
-                    const r = [...bulkRows];
-                    r[i].accessCode = e.target.value;
-                    setBulkRows(r);
-                  }}
-                />
-              </div>
-            ))}
+            <div className="space-y-2">
+              <div className="text-xs font-mono text-muted-foreground uppercase pl-1">Team IDs (Optional)</div>
+              <textarea
+                className="w-full h-48 px-3 py-2 rounded-md bg-black border border-white/10 text-xs font-mono text-white resize-none focus:outline-none focus:border-cyan-500"
+                placeholder="ALPHA-01\nBETA-02"
+                value={bulkIds}
+                onChange={e => setBulkIds(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="text-xs font-mono text-muted-foreground uppercase pl-1">Access Codes (Optional)</div>
+              <textarea
+                className="w-full h-48 px-3 py-2 rounded-md bg-black border border-white/10 text-xs font-mono text-white resize-none focus:outline-none focus:border-cyan-500"
+                placeholder="SEC123\nSEC456"
+                value={bulkCodes}
+                onChange={e => setBulkCodes(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-3 pt-2 border-t border-white/5">
             <APBButton 
-              size="sm" 
-              variant="outline" 
-              onClick={() => setBulkRows([...bulkRows, { name: "", teamId: "", accessCode: "" }])}
-            >
-              + Add Row
-            </APBButton>
-            <APBButton 
               glow 
               size="sm" 
               onClick={handleBulkAdd} 
-              disabled={bulkAdding || bulkRows.filter(r => r.name.trim() !== "").length === 0}
+              disabled={bulkAdding || !bulkNames.trim()}
             >
               {bulkAdding ? "Adding..." : "ADD TEAMS"}
             </APBButton>
@@ -397,53 +388,7 @@ export default function OrganizerTeams() {
           </div>
         </APBCard>
 
-        {/* Section 8: Google Sheets Registration Configuration */}
-      <APBCard className="p-6 space-y-4 border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-          <div>
-            <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-apb-cyan)] font-bold mb-1">
-              REGISTRATION DATA SOURCE
-            </div>
-            <h3 className="text-lg font-mono font-bold text-white">Google Sheets Registration Form</h3>
-          </div>
-          {eventState?.googleSheetsUrl ? (
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold">
-              <Check className="w-3.5 h-3.5" />
-              ● CONFIGURED
-            </span>
-          ) : (
-            <span className="text-xs font-mono text-muted-foreground">
-              ○ NOT CONFIGURED
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-2 font-mono">
-          <label className="text-xs text-muted-foreground uppercase">Google Sheets Spreadsheet URL</label>
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <input
-              type="url"
-              placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-              value={sheetUrl}
-              onChange={(e: any) => setSheetUrl(e.target.value)}
-              className="flex-1 w-full h-10 px-3.5 rounded-md bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--color-apb-cyan)]"
-            />
-            <APBButton
-              glow
-              size="sm"
-              onClick={handleSaveSheetUrl}
-              disabled={savingSheet}
-              className="h-10 px-6 font-mono text-xs uppercase tracking-wider shrink-0"
-            >
-              <Save className="w-3.5 h-3.5 mr-2" />
-              {savingSheet ? "Saving..." : sheetSavedMsg ? "Saved ✓" : "Save URL"}
-            </APBButton>
-          </div>
-          <p className="text-[11px] text-muted-foreground pt-1">
-            <strong>Note:</strong> Access IDs already exist in the registration Sheet. APB will not generate replacement Access IDs during sync. No live sync connector is faked.
-          </p>
-        </div>
-      </APBCard>
+        
 
       <APBCard className="p-6 space-y-6">
         <div className="flex gap-4 items-center justify-between">

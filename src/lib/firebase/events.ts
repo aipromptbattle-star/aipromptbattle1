@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import { Event, Round } from "./schema";
 import { logAudit } from "./teams";
+import { collection, getDocs } from "firebase/firestore";
 
 export const EVENT_ID = "currentEvent";
 
@@ -214,17 +215,72 @@ export async function extendTime(roundId: string, additionalSeconds: number) {
 export async function endRound(roundId: string) {
   const now = Date.now();
 
-  await runTransaction(db, async (transaction) => {
-    const roundRef = doc(db, "rounds", roundId);
-    transaction.update(roundRef, {
-      status: "CLOSED",
-      endsAt: null,
-      pausedRemainingSeconds: null,
-      updatedAt: now
-    });
-  });
+  // AUTO CAPTURE DRAFTS
+  try {
+    const draftsRef = collection(db, "drafts");
+    const draftsSnap = await getDocs(draftsRef);
+    
+    await runTransaction(db, async (transaction) => {
+      // End the round
+      const roundRef = doc(db, "rounds", roundId);
+      transaction.update(roundRef, {
+        status: "CLOSED",
+        endsAt: null,
+        pausedRemainingSeconds: null,
+        updatedAt: now
+      });
 
-  await logAudit("ROUND_ENDED", "ORGANIZER", { roundId });
+      // Capture missing submissions
+      for (const d of draftsSnap.docs) {
+        const draft = d.data();
+        if (draft.roundId === roundId) {
+          const subId = `${EVENT_ID}_${draft.teamId}_${roundId}`;
+          const subRef = doc(db, "submissions", subId);
+          const subDoc = await transaction.get(subRef);
+          
+          if (!subDoc.exists()) {
+            // Auto capture
+            transaction.set(subRef, {
+              eventId: EVENT_ID,
+              teamId: draft.teamId,
+              roundId: roundId,
+              prompt: draft.prompt || "",
+              member2Data: draft.member2Data || null,
+              quizAnswers: draft.quizAnswers || null,
+              stageSubmissions: draft.stageSubmissions || null,
+              status: "FINAL",
+              submittedAt: now,
+              autoCaptured: true
+            });
+            
+            const stateRef = doc(db, "teamRoundState", subId);
+            transaction.set(stateRef, {
+              eventId: EVENT_ID,
+              teamId: draft.teamId,
+              roundId: roundId,
+              status: "SUBMITTED",
+              version: 2,
+              updatedAt: now
+            }, { merge: true });
+          }
+        }
+      }
+    });
+    await logAudit("ROUND_ENDED_WITH_AUTOCAPTURE", "ORGANIZER", { roundId });
+  } catch (err) {
+    console.error("Auto capture failed:", err);
+    // Fallback if transaction is too large
+    await runTransaction(db, async (transaction) => {
+      const roundRef = doc(db, "rounds", roundId);
+      transaction.update(roundRef, {
+        status: "CLOSED",
+        endsAt: null,
+        pausedRemainingSeconds: null,
+        updatedAt: now
+      });
+    });
+    await logAudit("ROUND_ENDED", "ORGANIZER", { roundId });
+  }
 }
 
 export async function reopenRound(roundId: string, durationSeconds = 300) {

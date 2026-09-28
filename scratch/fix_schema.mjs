@@ -1,9 +1,10 @@
 
 import fs from "fs";
-let file = fs.readFileSync("src/lib/firebase/schema.ts", "utf8");
 
-file = file.replace(/\\nexport type ChallengeType/g, "\nexport type ChallengeType");
+let f = fs.readFileSync("src/lib/firebase/schema.ts", "utf8");
 
-fs.writeFileSync("src/lib/firebase/schema.ts", file);
-console.log("Fixed schema.ts");
+f = f.replace(`displayBoardState?: DisplayBoardState;`, `displayBoardState?: DisplayBoardState;\n  judgeScreenState?: ParticipantBoardState;`);
+
+fs.writeFileSync("src/lib/firebase/schema.ts", f);
+console.log("Added judgeScreenState to Event schema");
 

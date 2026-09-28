@@ -33,14 +33,13 @@ export default function PublicHostDisplay() {
 
   // Background anonymous auth ensuring public Firestore read access without requiring participant login
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) {
+    auth.authStateReady().then(() => {
+      if (!auth.currentUser) {
         signInAnonymously(auth).catch((err) => {
           console.warn("Public display anonymous auth notice:", err.message);
         });
       }
     });
-    return () => unsubscribe();
   }, []);
 
   // Real-time authoritative clock ticker

@@ -304,7 +304,7 @@ export default function ParticipantDashboard() {
         />
         <ParticipantScreenOverlay
           globalScreenMode={eventState?.participantScreenState?.globalScreenMode}
-          overrideScreenMode={teamRoundState?.overrideScreenMode}
+          overrideScreenMode={teamData?.overrideScreenMode || teamRoundState?.overrideScreenMode}
           boardState={eventState?.participantScreenState}
         >
           <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto flex flex-col relative h-full">
@@ -340,7 +340,7 @@ export default function ParticipantDashboard() {
         />
         <ParticipantScreenOverlay
           globalScreenMode={eventState?.participantScreenState?.globalScreenMode}
-          overrideScreenMode={teamRoundState?.overrideScreenMode}
+          overrideScreenMode={teamData?.overrideScreenMode || teamRoundState?.overrideScreenMode}
           boardState={eventState?.participantScreenState}
         >
           <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto flex flex-col relative h-full">
@@ -375,7 +375,7 @@ export default function ParticipantDashboard() {
 
       <ParticipantScreenOverlay
           globalScreenMode={eventState?.participantScreenState?.globalScreenMode}
-          overrideScreenMode={teamRoundState?.overrideScreenMode}
+          overrideScreenMode={teamData?.overrideScreenMode || teamRoundState?.overrideScreenMode}
           boardState={eventState?.participantScreenState}
         >
           <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6 pb-32 sm:pb-28 relative h-full">
