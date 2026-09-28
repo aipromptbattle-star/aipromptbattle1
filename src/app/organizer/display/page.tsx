@@ -52,6 +52,7 @@ export default function OrganizerDisplayControl() {
   const [draftImageUrl, setDraftImageUrl] = useState("");
   const [draftTextAlign, setDraftTextAlign] = useState<"left" | "center" | "right">("center");
   const [draftImagePos, setDraftImagePos] = useState<"top" | "bottom" | "bg">("bottom");
+  const [flashAlertText, setFlashAlertText] = useState("");
 
   // Load template when selectedMode changes
   useEffect(() => {

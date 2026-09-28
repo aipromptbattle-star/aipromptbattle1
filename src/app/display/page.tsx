@@ -80,6 +80,27 @@ export default function PublicHostDisplay() {
   const { teams } = useTeams();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const [flashAlert, setFlashAlert] = useState<{text: string; visible: boolean} | null>(null);
+
+  useEffect(() => {
+    if (eventState?.transientAlert) {
+      const { text, timestamp, durationSeconds } = eventState.transientAlert;
+      const elapsed = Date.now() - timestamp;
+      if (elapsed < durationSeconds * 1000) {
+        setFlashAlert({ text, visible: true });
+        const timer = setTimeout(() => {
+          setFlashAlert(prev => prev ? { ...prev, visible: false } : null);
+        }, (durationSeconds * 1000) - elapsed);
+        
+        // Try to play sound
+        try { playTick(); setTimeout(playTick, 200); setTimeout(playTick, 400); } catch(e){}
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [eventState?.transientAlert]);
+
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [now, setNow] = useState(Date.now());

@@ -68,6 +68,7 @@ export type ChallengeType = "TEXT" | "IMAGE" | "COMBINED";
 export type DisplayMode = "AUTOMATIC" | "LEADERBOARD" | "LIVE_ROUND" | "EVENT_STATUS" | "WAITING" | "IMAGE" | "TEXT" | "PARTICIPANT_SYNC";
 
 export interface Event {
+  transientAlert?: { text: string; timestamp: number; durationSeconds: number; };
   displayLeaderboardTopN?: number | null;
   eventName: string;
   status: EventStatus;

@@ -271,7 +271,7 @@ export default function ParticipantBoardPage() {
             )}
           </div>
 
-          {selectedMode !== "AUTO" && (
+          {(selectedMode as string) !== "AUTO" && (
             <div className="space-y-4">
               <h3 className="font-mono text-sm uppercase text-slate-400 tracking-widest border-b border-slate-700 pb-2">
                 {selectedMode.replace("_", " ")} TEMPLATE
@@ -310,7 +310,7 @@ export default function ParticipantBoardPage() {
                 </div>
               )}
               
-              {selectedMode !== "AUTO" && (
+              {(selectedMode as string) !== "AUTO" && (
                 <>
                   <div className="space-y-1.5">
                     <Label>Image / Visual Asset (Optional)</Label>
