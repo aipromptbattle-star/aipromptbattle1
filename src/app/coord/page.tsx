@@ -68,20 +68,19 @@ export default function CoordWalkie() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    
-    const msg = text;
-    setText(""); // Optimistic clear
+    if (!text.trim() || !joined) return;
     
     try {
       await addDoc(collection(db, "coordMessages"), {
         sender: name,
-        text: msg,
+        text: text,
         timestamp: Date.now()
       });
-    } catch (e) {
-      console.error(e);
-      alert("Failed to send message");
+      // Only clear if successful
+      setText(""); 
+    } catch (err: any) {
+      console.error("Walkie Send Error:", err);
+      alert("Error sending message: " + err.message);
     }
   };
 

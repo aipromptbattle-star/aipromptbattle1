@@ -1,7 +1,7 @@
 
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { collection, query, orderBy, onSnapshot, addDoc, limit } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, limit, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { APBButton } from "@/components/apb/APBButton";
 import { Send, Radio, User, Volume2, VolumeX, X, MessageSquare } from "lucide-react";
@@ -82,16 +82,18 @@ export function CoordWalkiePanel() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !joined) return;
-    const msg = text;
-    setText(""); 
+    
     try {
       await addDoc(collection(db, "coordMessages"), {
         sender: name,
-        text: msg,
+        text: text,
         timestamp: Date.now()
       });
-    } catch (e) {
-      console.error(e);
+      // Only clear if successful
+      setText(""); 
+    } catch (err: any) {
+      console.error("Walkie Send Error:", err);
+      alert("Error sending message: " + err.message);
     }
   };
 
