@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/apb/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmationDialog } from "@/components/apb/ConfirmationDialog";
+import { ImagePicker } from "@/components/apb/ImagePicker";
 import { EditRoundDialog } from "@/components/apb/EditRoundDialog";
 import { RoundTemplateBuilder } from "@/components/apb/RoundTemplateBuilder";
 import { ParticipantPreviewModal } from "@/components/apb/ParticipantPreviewModal";
@@ -54,6 +55,7 @@ export default function OrganizerRounds() {
     challengeType: "COMBINED" as "TEXT" | "IMAGE" | "COMBINED",
     challengeInstructions: "",
     referenceMaterial: "",
+    imageUrl: "",
     constraintsStr: "",
   });
 
@@ -74,6 +76,7 @@ export default function OrganizerRounds() {
         challengeDescription: formData.description,
         challengeInstructions: formData.challengeInstructions,
         referenceMaterial: formData.referenceMaterial,
+        imageUrl: formData.imageUrl,
         constraints,
       });
       setOpen(false);
@@ -84,6 +87,7 @@ export default function OrganizerRounds() {
         description: "",
         challengeInstructions: "",
         referenceMaterial: "",
+        imageUrl: "",
         constraintsStr: "",
       });
     } catch (err: unknown) {

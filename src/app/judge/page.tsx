@@ -20,7 +20,7 @@ export default function JudgeDashboard() {
   const { currentRound, loading: roundLoading } = useCurrentRound(eventState?.currentRoundId || null);
 
   const { assignments, loading: assignmentsLoading } = useJudgeAssignments(user?.uid);
-  const { scores, loading: scoresLoading } = useJudgeScores(null, null);
+  const { scores, loading: scoresLoading } = useJudgeScores(null, null, user?.uid);
   const { teams, loading: teamsLoading } = useTeams();
 
   const [filter, setFilter] = useState<"ALL" | "PENDING" | "COMPLETED">("ALL");

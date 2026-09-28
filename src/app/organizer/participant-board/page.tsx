@@ -306,15 +306,10 @@ export default function ParticipantBoardPage() {
                 </div>
               )}
               
-              {selectedMode !== "COUNTDOWN" && (
+              {selectedMode !== "AUTO" && (
                 <div className="space-y-1.5">
-                  <Label>Image URL (Optional)</Label>
-                  <Input 
-                    value={draftImageUrl} 
-                    onChange={e => setDraftImageUrl(e.target.value)} 
-                    placeholder="https://..."
-                    className="font-mono text-sm"
-                  />
+                  <Label>Image / Visual Asset (Optional)</Label>
+                  <ImagePicker value={draftImageUrl} onChange={url => setDraftImageUrl(url)} />
                 </div>
               )}
 
