@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { APBButton } from "./APBButton";
-import { useDraft } from "@/lib/firebase/drafts";
+import { useDraftReadOnly } from "@/lib/firebase/drafts";
 import { ParticipantScreenMode, Round } from "@/lib/firebase/schema";
 import { doc, updateDoc, deleteDoc, addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
@@ -32,7 +32,7 @@ export function LiveParticipantViewModal({
   teamOverrideMode,
   isOnline = false,
 }: LiveParticipantViewModalProps) {
-  const { draft } = useDraft(eventId, teamId || "", round?.id || "");
+  const { draft } = useDraftReadOnly(eventId, teamId || "", round?.id || "");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ mode: ParticipantScreenMode | "RESUME"; title: string; desc: string; danger?: boolean } | null>(null);
 

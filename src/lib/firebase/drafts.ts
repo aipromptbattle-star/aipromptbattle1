@@ -34,6 +34,36 @@ export function getLocalDraft(eventId: string, teamId: string, roundId: string):
   }
 }
 
+
+export function useDraftReadOnly(eventId: string | null, teamId: string | null, roundId: string | null) {
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!eventId || !teamId || !roundId) {
+      setDraft(null);
+      setLoading(false);
+      return;
+    }
+
+    const docId = getDraftDocId(eventId, teamId, roundId);
+    const draftRef = doc(db, "drafts", docId);
+
+    const unsubscribe = onSnapshot(draftRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setDraft(snapshot.data() as Draft);
+      } else {
+        setDraft(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [eventId, teamId, roundId]);
+
+  return { draft, loading };
+}
+
 export function useDraft(eventId: string | null, teamId: string | null, roundId: string | null) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [loading, setLoading] = useState(true);
