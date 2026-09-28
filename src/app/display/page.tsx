@@ -20,25 +20,6 @@ import {
 } from "lucide-react";
 
 
-// Synthesize a generic UI tick sound
-function playTick() {
-  try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(800, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.05);
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.1);
-  } catch (e) {}
-}
 
 // Synthesize a heavy gong/chord for GO
 function playGong() {
@@ -62,6 +43,58 @@ function playGong() {
   } catch (e) {}
 }
 
+
+// Singleton Audio Context to prevent exceeding hardware limits
+let audioCtx: any = null;
+function getAudioCtx() {
+  if (typeof window === 'undefined') return null;
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContext) audioCtx = new AudioContext();
+  }
+  return audioCtx;
+}
+
+// Synthesize a generic UI tick sound
+function playTick() {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+  } catch (e) {}
+}
+
+// Synthesize a heavy gong/chord for GO
+function playGong() {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    
+    [200, 250, 300].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
+      osc.start();
+      osc.stop(ctx.currentTime + 2);
+    });
+  } catch (e) {}
+}
+
 export default function PublicHostDisplay() {
   const { eventState, loading: eventLoading } = useEventState();
   const { currentRound, loading: roundLoading } = useCurrentRound(eventState?.currentRoundId || null);
@@ -69,10 +102,27 @@ export default function PublicHostDisplay() {
   const { teams } = useTeams();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [constraintRevealActive, setConstraintRevealActive] = useState<number | null>(null);
   const lastRevealedStageRef = useRef<number>(1);
+
+  const enableAudio = () => {
+    try {
+      const ctx = getAudioCtx();
+      if (ctx) {
+        ctx.resume().then(() => {
+          setAudioEnabled(true);
+        });
+      } else {
+        setAudioEnabled(true);
+      }
+    } catch(e) {
+      setAudioEnabled(true);
+    }
+  };
+
 
   const prevRemainingRef = useRef<number | null>(null);
 

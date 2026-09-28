@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { MonitorPlay, useState, useMemo } from "react";
 import { APBCard } from "@/components/apb/APBCard";
 import { APBButton } from "@/components/apb/APBButton";
 import { StatusBadge } from "@/components/apb/StatusBadge";
@@ -242,6 +242,23 @@ export default function OrganizerResults() {
     } finally {
       setReleasingNext(false);
     }
+  };
+
+  
+  const handleSpotlight = async (sub: Submission) => {
+    try {
+      const { doc, updateDoc } = await import("firebase/firestore");
+      const { db } = await import("@/lib/firebase/config");
+      await updateDoc(doc(db, "events", "currentEvent"), {
+        "displayBoardState.mode": "TEXT",
+        "displayBoardState.activeTemplate": {
+          heading: getTeamName(sub.teamId),
+          subheading: "FINAL SCORE: " + sub.score,
+          body: sub.content?.text || "",
+          textAlign: "left"
+        }
+      });
+    } catch(e) {}
   };
 
   const handlePublish = async (publish: boolean) => {
@@ -663,18 +680,15 @@ export default function OrganizerResults() {
                               )}
                             </td>
                             <td className="py-3 px-4 text-right">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleQualify(sub.teamId)}
-                                className={`text-[11px] px-2 py-0.5 rounded border transition-colors ${
-                                  isQualified
-                                    ? "border-rose-500/40 text-rose-400 hover:bg-rose-500/10"
-                                    : "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
-                                }`}
-                              >
-                                {isQualified ? "Remove" : "Qualify"}
-                              </button>
-                            </td>
+                                <div className="flex justify-end gap-2">
+                                  <APBButton variant="outline" size="sm" onClick={() => window.open(`/judge/submissions/${sub.id}`, "_blank")} className="text-[10px] h-7 px-2">
+                                    <Eye className="w-3 h-3 mr-1" /> View
+                                  </APBButton>
+                                  <APBButton variant="outline" size="sm" glow onClick={() => handleSpotlight(sub)} className="text-[10px] h-7 px-2 border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/20">
+                                    <MonitorPlay className="w-3 h-3 mr-1" /> Spotlight
+                                  </APBButton>
+                                </div>
+                              </td>
                           </tr>
                         );
                       })}
