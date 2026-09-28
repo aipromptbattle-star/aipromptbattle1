@@ -330,8 +330,25 @@ export async function resetRound(roundId: string) {
 
 export async function updateEventSettings(updates: Partial<Event>) {
   const eventRef = doc(db, "events", EVENT_ID);
+  
+  // Recursively strip out undefined values to prevent Firestore crashes
+  const stripUndefined = (obj: any): any => {
+    if (obj === undefined) return null;
+    if (typeof obj !== "object" || obj === null) return obj;
+    if (Array.isArray(obj)) return obj.map(stripUndefined);
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key] = stripUndefined(value);
+      }
+    }
+    return result;
+  };
+  
+  const cleanUpdates = stripUndefined(updates);
+
   await updateDoc(eventRef, {
-    ...updates,
+    ...cleanUpdates,
     updatedAt: Date.now(),
   });
   await logAudit("EVENT_SETTINGS_UPDATED", "ORGANIZER", {
