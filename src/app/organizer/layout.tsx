@@ -81,10 +81,17 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
 
   return (
     <ProtectedRoute>
-      <div className="h-[100dvh] w-full bg-background text-foreground flex flex-col font-sans overflow-hidden relative">
+      <div className="h-[100dvh] w-full bg-[#03050a] text-foreground flex flex-col font-sans overflow-hidden relative">
+
+        {/* AMBIENT MESH BACKGROUND FOR GLASS EFFECT */}
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[var(--color-apb-cyan)]/10 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: "8s" }} />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-500/10 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: "12s" }} />
+        </div>
+
 
         {/* TOP HEADER */}
-        <header className="border-b border-[var(--color-apb-surface-border)] bg-[var(--color-apb-surface)] px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 z-50">
+        <header className="border-b border-white/5 bg-[#0a0f18]/60 backdrop-blur-2xl px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 z-50 shadow-lg">
           <div className="flex items-center gap-2.5">
             <Terminal className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--color-apb-cyan)]" />
             <h1 className="font-mono font-bold tracking-widest uppercase text-white text-sm sm:text-base hidden sm:block">
@@ -139,7 +146,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
         
         {/* MOBILE NAV MENU */}
         {mobileMenuOpen && (
-          <div className="absolute top-[100px] inset-x-0 bottom-0 bg-black/95 z-40 p-4 overflow-y-auto sm:hidden flex flex-col gap-2">
+          <div className="absolute top-[100px] inset-x-0 bottom-0 bg-[#0a0f18]/80 backdrop-blur-2xl z-40 p-4 overflow-y-auto sm:hidden flex flex-col gap-2">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== "/organizer" && pathname.startsWith(item.href));
               const Icon = item.icon;
@@ -165,12 +172,12 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
         {/* MAIN SCROLL AREA */}
         <main 
           ref={mainRef}
-          className="flex-1 min-w-0 w-full h-full overflow-y-auto scrollbar-none bg-background relative"
+          className="flex-1 min-w-0 w-full h-full overflow-y-auto scrollbar-none relative z-10"
         >
           {/* FLOATING NAVBAR (Desktop/Tablet) */}
           <div className={cn(
             "hidden sm:flex sticky top-0 z-30 justify-center w-full transition-all duration-300 pointer-events-none",
-            isScrolled ? "pt-4" : "pt-0 bg-[var(--color-apb-surface)]/50 backdrop-blur-md border-b border-white/5 pb-0"
+            isScrolled ? "pt-4" : "pt-0 bg-[#0a0f18]/40 backdrop-blur-2xl border-b border-white/5 pb-0"
           )}>
             <nav className={cn(
               "pointer-events-auto flex items-center justify-center gap-1 transition-all duration-300 mx-auto",
