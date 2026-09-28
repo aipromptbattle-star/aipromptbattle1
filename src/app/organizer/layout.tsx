@@ -133,7 +133,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
             </button>
             
             <button 
-              className="sm:hidden ml-2 text-white" 
+              className="ml-2 text-white hover:text-[var(--color-apb-cyan)] transition-colors" 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -146,7 +146,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
         
         {/* MOBILE NAV MENU */}
         {mobileMenuOpen && (
-          <div className="absolute top-[100px] inset-x-0 bottom-0 bg-[#0a0f18]/80 backdrop-blur-2xl z-40 p-4 overflow-y-auto sm:hidden flex flex-col gap-2">
+          <div className="animate-in slide-in-from-left-5 absolute top-[65px] left-0 right-0 bottom-0 bg-[#0a0f18]/95 backdrop-blur-2xl z-40 p-4 overflow-y-auto flex flex-col gap-2 border-r border-white/5 sm:w-64 sm:right-auto sm:shadow-2xl">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== "/organizer" && pathname.startsWith(item.href));
               const Icon = item.icon;
@@ -174,44 +174,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
           ref={mainRef}
           className="flex-1 min-w-0 w-full h-full overflow-y-auto scrollbar-none relative z-10"
         >
-          {/* FLOATING NAVBAR (Desktop/Tablet) */}
-          <div className={cn(
-            "hidden sm:flex sticky top-0 z-30 justify-center w-full transition-all duration-300 pointer-events-none",
-            isScrolled ? "pt-4" : "pt-0 bg-[#0a0f18]/40 backdrop-blur-2xl border-b border-white/5 pb-0"
-          )}>
-            <nav className={cn(
-              "pointer-events-auto flex items-center justify-center gap-1 transition-all duration-300 mx-auto",
-              isScrolled 
-                ? "bg-black/80 backdrop-blur-md border border-white/10 rounded-full px-2 py-1.5 shadow-2xl scale-95" 
-                : "w-full max-w-7xl px-4 py-3 scale-100 flex-wrap"
-            )}>
-              {navItems.map((item) => {
-                const isActive = pathname === item.href || (item.href !== "/organizer" && pathname.startsWith(item.href));
-                const Icon = item.icon;
-                return (
-                  <Link key={item.href} href={item.href} className="shrink-0">
-                    <div
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 transition-all whitespace-nowrap",
-                        isScrolled ? "rounded-full" : "rounded-md",
-                        isActive
-                          ? "bg-[var(--color-apb-cyan)]/15 text-[var(--color-apb-cyan)] font-bold shadow-sm"
-                          : "text-slate-400 hover:text-white hover:bg-white/5"
-                      )}
-                    >
-                      <Icon className={cn("shrink-0", isScrolled ? "w-3.5 h-3.5" : "w-4 h-4")} />
-                      <span className={cn(
-                        "font-mono uppercase tracking-wider",
-                        isScrolled ? "text-[10px]" : "text-[11px]"
-                      )}>
-                        {item.name}
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
+          
 
           {/* Page content */}
           <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto min-h-[calc(100vh-200px)]">
