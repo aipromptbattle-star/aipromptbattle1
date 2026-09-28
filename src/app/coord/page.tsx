@@ -13,6 +13,12 @@ export default function CoordWalkie() {
   const [text, setText] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const soundRef = useRef(soundEnabled);
+  const lastMsgIdRef = useRef<string | null>(null);
+  const initialLoadRef = useRef(true);
+
+  
+  useEffect(() => { soundRef.current = soundEnabled; }, [soundEnabled]);
 
   useEffect(() => {
     // Read from local storage to remember name

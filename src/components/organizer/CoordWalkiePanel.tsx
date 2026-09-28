@@ -15,7 +15,14 @@ export function CoordWalkiePanel() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [unread, setUnread] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const openRef = useRef(open);
+  const soundRef = useRef(soundEnabled);
+  const lastMsgIdRef = useRef<string | null>(null);
   const initialLoadRef = useRef(true);
+
+  
+  useEffect(() => { openRef.current = open; }, [open]);
+  useEffect(() => { soundRef.current = soundEnabled; }, [soundEnabled]);
 
   useEffect(() => {
     const stored = localStorage.getItem("apb_coord_name");
