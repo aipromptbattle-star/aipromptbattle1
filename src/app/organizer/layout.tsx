@@ -88,6 +88,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <CoordWalkiePanel />
             <Link href="/display" target="_blank" rel="noopener noreferrer" title="Open Public Display Screen">
               <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider text-[var(--color-apb-cyan)] border border-[var(--color-apb-cyan)]/30 hover:bg-[var(--color-apb-cyan)]/10 transition-colors">
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -198,8 +199,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
             {children}
           </div>
         </main>
-        <CoordWalkiePanel />
-      </div>
+              </div>
     </ProtectedRoute>
   );
 }
