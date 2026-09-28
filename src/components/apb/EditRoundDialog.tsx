@@ -26,13 +26,14 @@ export function EditRoundDialog({ round, open, onOpenChange }: EditRoundDialogPr
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    durationSeconds: 900,
-    challengeType: "COMBINED" as "TEXT" | "IMAGE" | "COMBINED",
-    challengeInstructions: "",
-    referenceMaterial: "",
-    constraintsStr: "",
+    title: round?.title || "",
+    description: round?.description || "",
+    durationSeconds: round?.durationSeconds || 1200,
+    challengeType: round?.challengeType || "TEXT",
+    challengeInstructions: round?.challengeInstructions || "",
+    referenceMaterial: round?.referenceMaterial || "",
+    imageUrl: round?.imageUrl || "",
+    constraintsStr: round?.constraints?.join("\n") || "",
   });
 
   useEffect(() => {
@@ -40,8 +41,8 @@ export function EditRoundDialog({ round, open, onOpenChange }: EditRoundDialogPr
       setFormData({
         title: round.title || "",
         description: round.description || "",
-        durationSeconds: round.durationSeconds || 900,
-        challengeType: round.challengeType || "COMBINED",
+        durationSeconds: round.durationSeconds || 1200,
+        challengeType: round.challengeType || "TEXT",
         challengeInstructions: round.challengeInstructions || "",
         referenceMaterial: round.referenceMaterial || "",
         imageUrl: round.imageUrl || "",
