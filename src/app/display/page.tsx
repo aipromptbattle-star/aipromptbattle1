@@ -236,6 +236,10 @@ export default function PublicHostDisplay() {
   const showPaused = displayOverride === "AUTOMATIC" && currentRound?.status === "PAUSED";
   const showComplete = displayOverride === "AUTOMATIC" && (currentRound?.status === "CLOSED" || currentRound?.status === "ENDED" || currentRound?.status === "JUDGING" || currentRound?.status === "RESULTS");
 
+  
+  const currentSubmissionsCount = submissions.filter(s => s.roundId === currentRound?.id && s.status === "FINAL").length;
+  const activeTeamsCount = teams.filter(t => t.active !== false).length;
+
   // Leaderboard scored teams
   const scoredSubmissions = [...submissions]
     .filter((s) => s.score !== undefined)

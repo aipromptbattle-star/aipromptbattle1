@@ -50,6 +50,8 @@ export default function OrganizerDisplayControl() {
   const [draftSubheading, setDraftSubheading] = useState("");
   const [draftBody, setDraftBody] = useState("");
   const [draftImageUrl, setDraftImageUrl] = useState("");
+  const [draftTextAlign, setDraftTextAlign] = useState<"left" | "center" | "right">("center");
+  const [draftImagePos, setDraftImagePos] = useState<"top" | "bottom" | "bg">("bottom");
 
   // Load template when selectedMode changes
   useEffect(() => {
@@ -65,6 +67,8 @@ export default function OrganizerDisplayControl() {
     setDraftSubheading(t?.subheading || "");
     setDraftBody(t?.body || "");
     setDraftImageUrl(t?.imageUrl || "");
+    setDraftTextAlign(t?.textAlign || "center");
+    setDraftImagePos(t?.imagePosition || "bottom");
   }, [selectedMode, boardState.templates]);
 
   const saveTemplate = async () => {
@@ -74,7 +78,9 @@ export default function OrganizerDisplayControl() {
         heading: draftHeading,
         subheading: draftSubheading,
         body: draftBody,
-        imageUrl: draftImageUrl
+        imageUrl: draftImageUrl,
+        textAlign: draftTextAlign,
+        imagePosition: draftImagePos
       };
       
       const newTemplates = { ...(boardState.templates || {}) };
@@ -99,7 +105,9 @@ export default function OrganizerDisplayControl() {
         heading: draftHeading,
         subheading: draftSubheading,
         body: draftBody,
-        imageUrl: draftImageUrl
+        imageUrl: draftImageUrl,
+        textAlign: draftTextAlign,
+        imagePosition: draftImagePos
       };
       
       // Auto-save the template as well
@@ -214,10 +222,39 @@ export default function OrganizerDisplayControl() {
               )}
               
               {(selectedMode === "IMAGE" || selectedMode === "TEXT") && (
-                <div className="space-y-1.5">
-                  <Label className="text-[var(--color-apb-cyan)] font-bold tracking-widest uppercase mb-1">Image / Media (Optional)</Label>
-                  <ImagePicker value={draftImageUrl} onChange={setDraftImageUrl} />
-                </div>
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-[var(--color-apb-cyan)] font-bold tracking-widest uppercase mb-1">Image / Media (Optional)</Label>
+                    <ImagePicker value={draftImageUrl} onChange={setDraftImageUrl} />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 border-t border-slate-700 pt-4 mt-4">
+                    <div className="space-y-1.5">
+                      <Label>Text Alignment</Label>
+                      <select 
+                        className="w-full bg-black border border-slate-700 rounded-md px-3 py-2 text-sm font-mono text-white"
+                        value={draftTextAlign}
+                        onChange={e => setDraftTextAlign(e.target.value as any)}
+                      >
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Image Position</Label>
+                      <select 
+                        className="w-full bg-black border border-slate-700 rounded-md px-3 py-2 text-sm font-mono text-white"
+                        value={draftImagePos}
+                        onChange={e => setDraftImagePos(e.target.value as any)}
+                      >
+                        <option value="bottom">Below Text</option>
+                        <option value="top">Above Text</option>
+                        <option value="bg">Full Background Blur</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
               )}
 
               <div className="pt-4 flex flex-wrap gap-3">

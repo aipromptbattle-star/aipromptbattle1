@@ -23,6 +23,8 @@ export interface PresentationTemplate {
   body?: string;
   imageUrl?: string;
   durationSeconds?: number;
+  textAlign?: "left" | "center" | "right";
+  imagePosition?: "top" | "bottom" | "bg";
 }
 
 export interface ParticipantBoardState {
