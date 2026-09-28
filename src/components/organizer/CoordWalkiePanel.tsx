@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { collection, query, orderBy, onSnapshot, addDoc, limit, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { APBButton } from "@/components/apb/APBButton";
-import { Send, Radio, User, Volume2, VolumeX, X, MessageSquare } from "lucide-react";
+import { Send, Radio, User, Volume2, VolumeX, X, MessageSquare, Trash2 } from "lucide-react";
 
 export function CoordWalkiePanel() {
   const [open, setOpen] = useState(false);
@@ -79,6 +79,20 @@ export function CoordWalkiePanel() {
     setJoined(true);
   };
 
+  
+  const handleClearChat = async () => {
+    if (!confirm("Are you sure you want to clear the entire walkie history?")) return;
+    try {
+      const { deleteDoc, doc } = await import("firebase/firestore");
+      for (const msg of messages) {
+        await deleteDoc(doc(db, "coordMessages", msg.id));
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to clear chat: " + err.message);
+    }
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !joined) return;
@@ -110,6 +124,9 @@ export function CoordWalkiePanel() {
               <h3 className="font-mono font-bold text-white text-sm uppercase tracking-widest">Global Walkie</h3>
             </div>
             <div className="flex items-center gap-1">
+              <button onClick={handleClearChat} title="Clear Chat History" className="p-1.5 text-slate-400 hover:text-red-400 transition-colors rounded">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
               <button onClick={() => setSoundEnabled(!soundEnabled)} className="p-1.5 text-slate-400 hover:text-white rounded">
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </button>
