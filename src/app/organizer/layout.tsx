@@ -8,6 +8,7 @@ import { GlobalEventHeader } from "@/components/apb/GlobalEventHeader";
 import { CoordWalkiePanel } from "@/components/organizer/CoordWalkiePanel";
 import { cn } from "@/lib/utils";
 import {
+  AppWindow,
   Terminal, Users, LayoutDashboard, Clock, ExternalLink, LogOut,
   Star, Trophy, Settings,
   Database, Flame, Monitor, ShieldAlert, Maximize,
@@ -48,6 +49,10 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
     } catch (e) {
       console.error("Sign out error:", e);
     }
+  };
+
+    const popOutApp = () => {
+    window.open(window.location.href, "_blank", "popup=yes,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1200,height=800");
   };
 
   const toggleFullscreen = () => {
@@ -97,7 +102,14 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
             </Link>
 
             <button
-              onClick={toggleFullscreen}
+            onClick={popOutApp}
+            title="Pop out into clean window (No tabs/URL bar)"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider text-indigo-300 border border-indigo-500/50 hover:bg-indigo-500/20 transition-colors cursor-pointer hidden sm:flex"
+          >
+            <AppWindow className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={toggleFullscreen}
               title="Toggle Fullscreen"
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono uppercase tracking-wider text-slate-300 border border-slate-600/50 hover:bg-slate-800 transition-colors cursor-pointer hidden sm:flex"
             >

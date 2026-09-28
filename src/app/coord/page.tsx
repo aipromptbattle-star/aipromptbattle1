@@ -95,12 +95,12 @@ export default function CoordWalkie() {
           </div>
           <form onSubmit={handleJoin} className="space-y-4">
             <div>
-              <label className="text-xs font-mono text-slate-400 uppercase tracking-widest block mb-2">Your Name / Role</label>
+              <label className="text-xs font-mono text-slate-400 uppercase tracking-widest block mb-2">Name</label>
               <input 
                 type="text" 
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="e.g. Volunteer John" 
+                placeholder="Your name..." 
                 className="w-full bg-black border border-slate-700 rounded-md px-4 py-3 text-white font-mono focus:border-[var(--color-apb-cyan)] focus:ring-1 focus:ring-[var(--color-apb-cyan)] outline-none"
                 autoFocus
               />

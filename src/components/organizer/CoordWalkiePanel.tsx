@@ -125,7 +125,7 @@ export function CoordWalkiePanel() {
                   type="text" 
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="Your Name..." 
+                  placeholder="Your name..." 
                   className="w-full bg-black border border-slate-700 rounded p-2 text-sm text-white font-mono outline-none"
                   autoFocus
                 />
