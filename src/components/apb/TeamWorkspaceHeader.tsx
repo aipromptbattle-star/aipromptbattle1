@@ -3,6 +3,9 @@
 
 import React, { useState, useEffect } from "react";
 import { Round } from "@/lib/firebase/schema";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
+import { useTeam } from "@/lib/firebase/teams";
 import { APBButton } from "./APBButton";
 import { WifiOff, CheckCircle2, Loader2, AlertCircle, LogOut } from "lucide-react";
 

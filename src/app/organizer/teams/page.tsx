@@ -14,7 +14,7 @@ import { EditTeamDialog } from "@/components/apb/EditTeamDialog";
 import { useTeams, useSessions, toggleTeamStatus, killTeamSessions, addTeam, seedTestTeamRange, clearTestTeams, deleteTeam } from "@/lib/firebase/teams";
 import { useEventState, updateEventSettings } from "@/lib/firebase/events";
 import { Team } from "@/lib/firebase/schema";
-import { Loader2, Laptop, MoreVertical, Copy, Check, KeyRound, Sparkles, Sheet, Save, Trash2, Hash, ShieldAlert } from "lucide-react";
+import { Loader2, Laptop, MoreVertical, Copy, Check, KeyRound, Sparkles, Sheet, Save, Trash2, Hash, ShieldAlert, LifeBuoy } from "lucide-react";
 import { ActiveSessionsModal } from "@/components/apb/ActiveSessionsModal";
 import {
   DropdownMenu,

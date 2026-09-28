@@ -8,7 +8,8 @@ import { GlobalEventHeader } from "@/components/apb/GlobalEventHeader";
 import { cn } from "@/lib/utils";
 import {
   Terminal, Users, LayoutDashboard, Clock, ExternalLink, LogOut,
-  Star, Trophy, Settings, Flame, Monitor, ShieldAlert, Maximize,
+  Star, Trophy, Settings,
+  Database, Flame, Monitor, ShieldAlert, Maximize,
   FlaskConical, Menu, X
 } from "lucide-react";
 import { signOut } from "firebase/auth";

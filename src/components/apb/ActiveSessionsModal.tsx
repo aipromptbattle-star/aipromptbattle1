@@ -16,6 +16,7 @@ import {
   ShieldAlert,
   Laptop,
   Trash2,
+  LifeBuoy,
   Search,
   Users,
   CheckCircle2,
@@ -69,6 +70,7 @@ export function ActiveSessionsModal({
     return Array.from(groupedByTeam.entries()).filter(([teamId, teamSessions]) => {
       const team = teams.find((t) => t.teamId === teamId);
       const displayName = team?.displayName || "";
+      const needsHelp = team?.needsHelp;
       const searchMatch =
         !search.trim() ||
         teamId.toLowerCase().includes(search.toLowerCase()) ||

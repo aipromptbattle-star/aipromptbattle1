@@ -88,7 +88,8 @@ export interface Event {
 
 export interface Team {
   teamId: string;
-  overrideScreenMode?: ParticipantScreenMode | null; // The normalized ID, e.g., "APB-014"
+  overrideScreenMode?: ParticipantScreenMode | null;
+  needsHelp?: boolean; // The normalized ID, e.g., "APB-014"
   displayName: string;
   member1: string;
   member1Email?: string;

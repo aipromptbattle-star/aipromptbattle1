@@ -251,3 +251,17 @@ export async function clearTestTeams() {
   return snapshot.size;
 }
 
+
+export function useTeam(teamId: string | null) {
+  const [teamData, setTeamData] = useState<Team | null>(null);
+  
+  useEffect(() => {
+    if (!teamId) return;
+    const unsub = onSnapshot(doc(db, "teams", teamId), (docSnap) => {
+      if (docSnap.exists()) setTeamData(docSnap.data() as Team);
+    });
+    return () => unsub();
+  }, [teamId]);
+
+  return { teamData };
+}

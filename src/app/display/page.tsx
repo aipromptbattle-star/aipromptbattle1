@@ -19,6 +19,49 @@ import {
   Radio
 } from "lucide-react";
 
+
+// Synthesize a generic UI tick sound
+function playTick() {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+  } catch (e) {}
+}
+
+// Synthesize a heavy gong/chord for GO
+function playGong() {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    [200, 250, 300].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
+      osc.start();
+      osc.stop(ctx.currentTime + 2);
+    });
+  } catch (e) {}
+}
+
 export default function PublicHostDisplay() {
   const { eventState, loading: eventLoading } = useEventState();
   const { currentRound, loading: roundLoading } = useCurrentRound(eventState?.currentRoundId || null);
@@ -30,6 +73,23 @@ export default function PublicHostDisplay() {
   const [now, setNow] = useState(Date.now());
   const [constraintRevealActive, setConstraintRevealActive] = useState<number | null>(null);
   const lastRevealedStageRef = useRef<number>(1);
+
+  const prevRemainingRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!eventState?.globalCountdown?.active) return;
+    const remaining = Math.max(0, Math.ceil((eventState.globalCountdown.endsAt - now) / 1000));
+    
+    if (prevRemainingRef.current !== remaining) {
+      if (remaining <= 10 && remaining > 0) {
+        playTick();
+      } else if (remaining === 0 && prevRemainingRef.current !== 0 && prevRemainingRef.current !== null) {
+        playGong();
+      }
+      prevRemainingRef.current = remaining;
+    }
+  }, [now, eventState?.globalCountdown]);
+
 
   // Background anonymous auth ensuring public Firestore read access without requiring participant login
   useEffect(() => {
@@ -315,7 +375,7 @@ export default function PublicHostDisplay() {
               </div>
             ) : (
               <div className="w-full space-y-2.5">
-                {scoredSubmissions.slice(0, 8).map((sub, i) => {
+                {scoredSubmissions.slice(0, eventState?.displayLeaderboardTopN || 8).map((sub, i) => {
                   const medals = ["🥇", "🥈", "🥉"];
                   const medal = medals[i] ?? `#${i + 1}`;
                   const isQualified = currentRound?.qualifiedTeams?.includes(sub.teamId);
