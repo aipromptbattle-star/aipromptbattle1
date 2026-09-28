@@ -13,9 +13,9 @@ const APBButton = React.forwardRef<HTMLButtonElement, APBButtonProps>(
         ref={ref}
         variant={variant}
         className={cn(
-          "font-bold tracking-wide uppercase transition-all duration-300",
-          glow && variant === "default" && "shadow-[0_0_15px_rgba(0,240,255,0.4)] hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] border border-[var(--color-apb-cyan)]/50",
-          glow && variant === "destructive" && "shadow-[0_0_15px_rgba(255,50,50,0.4)] hover:shadow-[0_0_25px_rgba(255,50,50,0.6)] border border-destructive/50",
+          "font-bold tracking-wide uppercase transition-all duration-300 active:scale-95 hover:scale-[1.02]",
+          glow && variant === "default" && "glow-pulse shadow-[0_0_15px_rgba(34,211,238,0.5)] hover:shadow-[0_0_30px_rgba(34,211,238,0.9)] hover:scale-105 active:scale-95 group border border-[var(--color-apb-cyan)]/50",
+          glow && variant === "destructive" && "glow-pulse shadow-[0_0_15px_rgba(244,63,94,0.5)] hover:shadow-[0_0_30px_rgba(244,63,94,0.9)] hover:scale-105 active:scale-95 group border border-destructive/50",
           className
         )}
         {...props}
